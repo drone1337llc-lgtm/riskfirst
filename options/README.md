@@ -172,8 +172,8 @@ and account snapshot is timestamped with reasoning for the P&L story.
 ## Verifying the build
 
 ```bash
-cd C:\Users\Tench\.openclaw\workspace\alpaca-hackathon\options
-python -m pytest -q                       # → 36 passed (offline)
+cd options
+python -m pytest -q                       # → 50 passed (offline)
 python -c "import options.agent; print('import ok')"
 ```
 

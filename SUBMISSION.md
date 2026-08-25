@@ -68,10 +68,17 @@ bin/run_mcp.sh           Alpaca MCP server launcher (stdio/http/sse)
 
 ```
 python -m pip install -r requirements.txt
-cd cryptobot && .venv/bin/python -m bot.equity_agent --demo --symbol SPY
+cd cryptobot && .venv/bin/python -m bot.equity_agent --demo --symbol SPY   # equities lane
+cd ../options && ../cryptobot/.venv/bin/python -m options.cli               # options lane (primary)
 ```
 
-No Alpaca keys needed: bars come from yfinance, the option chain is synthetic
+No Alpaca keys needed: the equities lane pulls bars from yfinance with a
+synthetic chain; the options lane runs its full decision cycle
+(bull/bear/neutral agents -> risk arbiter -> LLM referee advisory review)
+against a mock broker, and the SAME guardrails run as the paper path
+(`_guard_legs`: 2-4 unique legs, $500/leg cap, $1 floor, intent whitelist)
+with fills labeled SIMULATED. Swap in paper keys and the identical
+order-builder hits the real Alpaca paper API via MCP.
 (clearly labeled), the SAME guardrails run as the paper path (`_guard_legs`:
 2-4 unique legs, $500/leg cap, $1 floor, intent whitelist), and the fill is
 SIMULATED. Swap in paper keys and the identical order-builder hits the real
