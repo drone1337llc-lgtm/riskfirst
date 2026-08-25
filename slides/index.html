@@ -93,7 +93,7 @@
       <li>Also found &amp; fixed: <b>COMMISSION=0 canceled every order</b> in the TensorTrade sim — patched the venv, verified 0 cancels.</li>
       <li>Repro: <span class="pill">cryptobot/config.py</span><span class="pill green">paper-only asserted</span></li>
     </ul>
-    <div class="foot"><span>PointsFirst · 03/09</span><span>cryptobot/config.py · backup .bak-20260824</span></div>
+    <div class="foot"><span>RiskFirst · 03/09</span><span>cryptobot/config.py · backup .bak-20260824</span></div>
   </section>
 
   <!-- 4 OOS GATE -->
@@ -103,13 +103,13 @@
     <div class="sub">Crypto lane stays <b>only if</b> OOS Sharpe is positive net. 75/25 train/eval windows, 4 folds, ~300k timesteps, evaluated on data the policy never saw.</div>
     <table>
       <tr><th>Fold</th><th>Window (train → eval)</th><th>Ann. Sharpe</th></tr>
-      <tr><td>1</td><td>0-75% → 75-100%</td><td class="pos">+4.07</td></tr>
-      <tr><td>2</td><td>25-100% → next 25%</td><td class="pos">+20.21</td></tr>
-      <tr><td>3</td><td>…</td><td class="neg">-3.68</td></tr>
-      <tr><td>4</td><td>…</td><td class="neg">-3.46</td></tr>
-      <tr><td colspan="2"><b>Spec-compliant full run (canonical eval_oos.py)</b></td><td class="pos"><b>mean 5.88 · 1/4 negative (noisy, honest)</b></td></tr>
+      <tr><td>1</td><td>0–75% → 75–100%</td><td class="pos">+0.41</td></tr>
+      <tr><td>2</td><td>25–100% → next 25%</td><td class="neg">−9.43</td></tr>
+      <tr><td>3</td><td>50–100% → next 25%</td><td class="pos">+5.58</td></tr>
+      <tr><td>4</td><td>75–100% → next 25%</td><td class="pos">+26.95</td></tr>
+      <tr><td colspan="2"><b>Spec-compliant full run (canonical eval_oos.py, 300k timesteps)</b></td><td class="pos"><b>mean 5.88 · 1/4 negative</b></td></tr>
     </table>
-    <div class="honest"><p>Honest framing: the gate PASSED (mean positive, 0/4 negative on the canonical run) but the earlier expanding-train variant showed 2/4 negative folds — high variance. Crypto stays as a <b>secondary lane</b>, never the headline.</p></div>
+    <div class="honest"><p>Honest framing: the gate PASSED (mean +5.88 net, 1/4 negative fold — fold 2 at −9.43 is exactly why the breaker matters). The earlier expanding-train variant showed 2/4 negative folds; the spec-compliant 75/25 run is the canonical verdict. High variance → crypto stays a <b>secondary lane</b>, never the headline.</p></div>
     <div class="foot"><span>RiskFirst · 04/09</span><span>eval_oos.py · promote on OOS, not train loss</span></div>
   </section>
 
