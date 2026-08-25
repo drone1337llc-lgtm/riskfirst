@@ -1,0 +1,5 @@
+.env
+state/
+checkpoints/*.zip
+__pycache__/
+.venv/

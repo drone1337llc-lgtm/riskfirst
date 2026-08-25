@@ -1,0 +1,17 @@
+[Unit]
+Description=Crypto RL paper-trading bot (%i)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tench
+WorkingDirectory=/home/tench/projects/cryptobot
+Environment=CRYPTOBOT_SYMBOL=%i
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/tench/projects/cryptobot/.venv/bin/python -m bot.run
+Restart=always
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target
