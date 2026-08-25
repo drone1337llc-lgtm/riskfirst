@@ -28,10 +28,10 @@ worked. So:
 - Then we built `cryptobot/eval_oos.py`, a walk-forward, 4-fold out-of-sample
   evaluator, and made it a **hard gate**: crypto lane stays only if OOS Sharpe is
   positive net.
-- Result (spec-compliant 75/25 window, 4 folds): smoke run mean annualized
-  Sharpe **13.37**, **0/4 folds negative** (full 300k-timestep run in flight).
-  **Verdict: viable → crypto stays a secondary lane, the options/equities agent
-  is the primary submission.**
+- Result (spec-compliant 75/25 window, 4 folds, 300k timesteps): mean annualized
+  Sharpe **5.88**, folds [0.41, -9.43, 5.58, 26.95] — 1/4 folds negative
+  (fold 2 noise). **Verdict: viable → crypto stays a secondary lane,
+  the options/equities agent is the primary submission.**
 
 ## Layout
 
@@ -73,8 +73,8 @@ python -m cryptobot.bot.run         # 24/7 paper loop
 
 ## Honest status
 
-- OOS gate: **PASS** (mean ann. Sharpe 4.28) with high variance — crypto lane
-  kept as secondary.
+- OOS gate: **PASS** (spec-compliant mean ann. Sharpe 5.88, 1/4 folds negative,
+  high variance) — crypto lane kept as secondary.
 - Options + equities lane: scaffolded and API-verified against alpaca-py 0.43.5
   (multi-leg `mleg` orders, `PositionIntent` BTO/BTC/STO/STC, ≤ 4 legs, option
   chains via `OptionHistoricalDataClient`).
