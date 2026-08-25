@@ -25,7 +25,7 @@
   3. The agent architecture (multi-agent diagram)
   4. The IV-rank structure matrix
   5. The risk framework table
-  6. How it uses Alpaca MCP + offline testing (77 tests)
+  6. How it uses Alpaca MCP + offline testing (87 tests)
   7. The OOS gate + Cryptonaut diagnosis
   8. Live-paper track record
   9. Why it's an agent, not a script
@@ -54,7 +54,7 @@
 - [ ] Trades via **Alpaca MCP / CLI** ✓
 - [ ] **Paper only**, fresh account, $100k start ✓
 - [ ] **No live keys committed** ✓
-- [x] 36 offline tests pass (verified, incl. MCP contract suite) ✓
+- [x] 87 offline tests pass (verified: 27 cryptobot + 60 options incl. MCP contract, LLM referee, runner) ✓
 - [ ] Walk-forward OOS Sharpe **positive** ✓
 
 ## 7. Final freeze
