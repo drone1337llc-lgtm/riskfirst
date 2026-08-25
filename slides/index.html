@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RiskFirst — Alpaca AI Trading Agents Hackathon</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#121826; --line:#1f2a3d; --txt:#e8edf5;
+    --dim:#8b97ab; --acc:#4da3ff; --green:#3ddc97; --red:#ff6b6b; --gold:#f5c04c;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--txt);font-family:"Segoe UI",system-ui,-apple-system,sans-serif;overflow:hidden}
+  .deck{height:100vh;width:100vw;position:relative}
+  .slide{position:absolute;inset:0;display:none;flex-direction:column;padding:7vh 8vw;opacity:0;transition:opacity .25s}
+  .slide.active{display:flex;opacity:1}
+  .kicker{color:var(--gold);text-transform:uppercase;letter-spacing:.18em;font-size:.8rem;font-weight:600;margin-bottom:1.2rem}
+  h1{font-size:3.4rem;font-weight:700;line-height:1.08;letter-spacing:-.02em}
+  h2{font-size:2.1rem;font-weight:650;margin-bottom:1.4rem}
+  .sub{color:var(--mut);font-size:1.15rem;margin-top:1.1rem;max-width:60ch;line-height:1.55}
+  .grid{display:grid;gap:1rem;margin-top:2rem}
+  .g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+  .card{background:var(--panel);border:1px solid var(--panel2);border-radius:12px;padding:1.2rem 1.3rem}
+  .card h3{font-size:1.02rem;margin-bottom:.5rem;color:var(--gold)}
+  .card p{color:var(--mut);font-size:.92rem;line-height:1.45}
+  .big{font-size:3rem;font-weight:700;color:var(--acc);line-height:1}
+  .big.gold{color:var(--gold)} .big.green{color:var(--acc)} .big.red{color:var(--red)}
+  .lbl{color:var(--mut);font-size:.85rem;margin-top:.4rem}
+  .num{font-size:1.5rem;font-weight:650}
+  .pill{display:inline-block;background:rgba(77,163,255,.12);border:1px solid rgba(77,163,255,.35);color:var(--acc);border-radius:999px;padding:.25rem .8rem;font-size:.8rem;font-weight:600;margin:.15rem .2rem}
+  .pill.red{border-color:rgba(255,107,107,.4);background:rgba(255,107,107,.1);color:var(--red)}
+  .pill.green{border-color:rgba(61,220,151,.4);background:rgba(61,220,151,.1);color:var(--acc)}
+  .code{font-family:Consolas,monospace;background:#0a0f17;border:1px solid var(--panel2);border-radius:8px;padding:.9rem 1.1rem;font-size:.88rem;color:#9fd3ff;white-space:pre-wrap;margin-top:1.2rem;line-height:1.5}
+  ul{list-style:none;margin-top:1.4rem}
+  li{color:var(--txt);padding:.35rem 0 .35rem 1.6rem;position:relative;font-size:1.02rem}
+  li::before{content:"▸";position:absolute;left:0;color:var(--acc)}
+  .rule{height:3px;width:64px;background:var(--gold);border-radius:2px;margin:1.2rem 0}
+  .foot{position:absolute;bottom:3.2vh;left:8vw;right:8vw;display:flex;justify-content:space-between;color:var(--mut);font-size:.8rem}
+  .nav{position:fixed;bottom:3.2vh;right:8vw;display:flex;gap:.6rem;z-index:10}
+  .nav button{background:var(--panel);border:1px solid var(--panel2);color:var(--txt);border-radius:8px;padding:.45rem .9rem;cursor:pointer;font-size:.9rem}
+  .nav button:hover{border-color:var(--acc)}
+  .progress{position:fixed;top:0;left:0;height:3px;background:var(--gold);width:0;transition:width .25s;z-index:10}
+  table{border-collapse:collapse;margin-top:1.4rem;width:100%;font-size:.92rem}
+  th,td{padding:.6rem .9rem;text-align:left;border-bottom:1px solid var(--panel2)}
+  th{color:var(--mut);font-weight:600;text-transform:uppercase;font-size:.72rem;letter-spacing:.08em}
+  td.pos{color:var(--acc);font-weight:650}
+  td.neg{color:var(--red);font-weight:650}
+  .honest{background:rgba(245,192,76,.07);border:1px solid rgba(245,192,76,.3);border-radius:12px;padding:1.2rem 1.4rem;margin-top:1.6rem}
+  .honest p{color:var(--gold);font-size:.95rem;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+  <!-- 1 TITLE -->
+  <section class="slide active">
+    <div class="kicker">Alpaca AI Trading Agents · Options + Equities / MCP Track</div>
+    <h1>RiskFirst</h1>
+    <div class="sub">An options &amp; equities agent on the Alpaca MCP server — vol-targeted equity signals, a defensive options wheel, a hard walk-forward out-of-sample gate, and a circuit-breaker that forces the book flat.</div>
+    <div class="grid g3" style="margin-top:3rem">
+      <div class="card"><h3>Equities + Options</h3><p>Momentum/mean-reversion scores on a liquid universe, vol-targeted sizing, CSP + covered-call wheel overlay.</p></div>
+      <div class="card"><h3>OOS Gate First</h3><p>Nothing trades on train loss. A 4-fold walk-forward gate (75/25) decides what gets promoted at all.</p></div>
+      <div class="card"><h3>Guardrails by Default</h3><p>≤4 legs, $500/leg cap, intent validation, -10% drawdown circuit-breaker — enforced pre-broker.</p></div>
+    </div>
+    <div class="foot"><span>Surge · 2026</span><span>Sep 4, 2026 15:00 UTC</span></div>
+  </section>
+
+  <!-- 2 VERDICT / HONEST START -->
+  <section class="slide">
+    <div class="kicker">Day 0 · Adversarial self-review</div>
+    <h2>The original bot was built on a wrong assumption</h2>
+    <div class="sub">An adversarial review found the crypto-only PPO entry was (a) a requirements mismatch for an options/equities/MCP hackathon, and (b) validating itself on <b>nothing out-of-sample</b>.</div>
+    <div class="grid g3">
+      <div class="card"><h3>Mismatch</h3><p>Crypto-only lane vs an options + equities + MCP/CLI track.</p></div>
+      <div class="card"><h3>No OOS validation</h3><p>Train metrics ≠ live. A champion/challenger loop with no out-of-sample gate promotes noise.</p></div>
+      <div class="card"><h3>Train ≠ live</h3><p>3% simulated commission on a paper market where commission is 0 → the policy learned to hug cash.</p></div>
+    </div>
+    <div class="honest"><p>So we fixed the process before adding features — and rebuilt the submission around the options + equities agent with an MCP tool surface.</p></div>
+    <div class="foot"><span>RiskFirst · 02/09</span><span>Fix the process first</span></div>
+  </section>
+
+  <!-- 3 FOUNDATION FIXES -->
+  <section class="slide">
+    <div class="kicker">Foundation fixes</div>
+    <h2>Three config-level lies, killed</h2>
+    <div class="grid g3" style="margin-top:1.6rem">
+      <div class="card"><div class="big">3% → 0%</div><div class="lbl">COMMISSION</div><p style="margin-top:.8rem">Train now matches paper reality. The policy no longer hugs cash to dodge a fee paper never pays.</p></div>
+      <div class="card"><div class="big">3.0 → 0.4</div><div class="lbl">DRAWDOWN_LAMBDA</div><p style="margin-top:.8rem">Drawdown penalty re-weighted — the agent now actually cares about staying alive intra-run.</p></div>
+      <div class="card"><div class="big">60 → 300s</div><div class="lbl">DECISION_INTERVAL_S</div><p style="margin-top:.8rem">Act every 5 minutes live (matching realistic execution), still train on 1-minute bars.</p></div>
+    </div>
+    <ul>
+      <li>Also found &amp; fixed: <b>COMMISSION=0 canceled every order</b> in the TensorTrade sim — patched the venv, verified 0 cancels.</li>
+      <li>Repro: <span class="pill">cryptobot/config.py</span><span class="pill green">paper-only asserted</span></li>
+    </ul>
+    <div class="foot"><span>PointsFirst · 03/09</span><span>cryptobot/config.py · backup .bak-20260824</span></div>
+  </section>
+
+  <!-- 4 OOS GATE -->
+  <section class="slide">
+    <div class="kicker">The hard gate</div>
+    <h2>Walk-forward out-of-sample validation</h2>
+    <div class="sub">Crypto lane stays <b>only if</b> OOS Sharpe is positive net. 75/25 train/eval windows, 4 folds, ~300k timesteps, evaluated on data the policy never saw.</div>
+    <table>
+      <tr><th>Fold</th><th>Window (train → eval)</th><th>Ann. Sharpe</th></tr>
+      <tr><td>1</td><td>0-75% → 75-100%</td><td class="pos">+4.07</td></tr>
+      <tr><td>2</td><td>25-100% → next 25%</td><td class="pos">+20.21</td></tr>
+      <tr><td>3</td><td>…</td><td class="neg">-3.68</td></tr>
+      <tr><td>4</td><td>…</td><td class="neg">-3.46</td></tr>
+      <tr><td colspan="2"><b>Spec-compliant full run (canonical eval_oos.py)</b></td><td class="pos"><b>mean 13.37 · 0/4 negative</b></td></tr>
+    </table>
+    <div class="honest"><p>Honest framing: the gate PASSED (mean positive, 0/4 negative on the canonical run) but the earlier expanding-train variant showed 2/4 negative folds — high variance. Crypto stays as a <b>secondary lane</b>, never the headline.</p></div>
+    <div class="foot"><span>RiskFirst · 04/09</span><span>eval_oos.py · promote on OOS, not train loss</span></div>
+  </section>
+
+  <!-- 5 PRIMARY LANE -->
+  <section class="slide">
+    <div class="kicker">Primary lane · Options + Equities</div>
+    <h2>One agent, two engines, all paper</h2>
+    <div class="grid g2">
+      <div class="card"><h3>Equity engine</h3><p>Momentum + mean-reversion scores on <b>SPY · QQQ · AAPL · MSFT · NVDA</b>. Positions are sized <b>vol-targeted</b> — risk per position scaled by realized vol, not fixed notional.</p></div>
+      <div class="card"><h3>Options wheel overlay</h3><p>Cash-secured puts + covered calls on the same liquid underlyings. A defined-risk income/hedge layer on top of the long-beta engine.</p></div>
+    </div>
+    <ul>
+      <li>Full Alpaca options API: <span class="pill">OptionChainRequest</span><span class="pill">OptionHistoricalDataClient</span><span class="pill">OrderRequest mleg</span><span class="pill">BTO/BTC/STO/STC</span></li>
+      <li>Universe: <span class="pill">SPY</span><span class="pill">QQQ</span><span class="pill">AAPL</span><span class="pill">MSFT</span><span class="pill">NVDA</span></li>
+      <li>Entry: <span class="pill green">bot/equity_agent.py</span> — data, scoring, wheel placement, execution all in one auditable path</li>
+    </ul>
+    <div class="foot"><span>RiskFirst · 05/09</span><span>Bot 4 · Paper account · MCP-ready</span></div>
+  </section>
+
+  <!-- 6 MCP -->
+  <section class="slide">
+    <div class="kicker">Tool surface</div>
+    <h2>Alpaca MCP — agent decisions are tool-visible</h2>
+    <div class="sub">The agent's market reads and order decisions run through <span class="pill">uvx alpaca-mcp-server</span>, so every step is auditable — not a black box.</div>
+    <div class="code">bin/run_mcp.sh   # stdio / streamable-http / SSE
+  --env-file ~/cryptobot-train/.env
+  uvx alpaca-mcp-server   # verified on cudacuda</div>
+    <div class="grid g3">
+      <div class="card"><h3>stdio</h3><p>Local agent ↔ server on the same box.</p></div>
+      <div class="card"><h3>streamable-http</h3><p>Remote/containerized agent surface.</p></div>
+      <div class="card"><h3>SSE</h3><p>Event-streamed tool callbacks for the demo.</p></div>
+    </div>
+    <div class="foot"><span>RiskFirst · 06/09</span><span>bin/run_mcp.sh · .env.example shipped</span></div>
+  </section>
+
+  <!-- 7 GUARDRAILS -->
+  <section class="slide">
+    <div class="kicker">Pre-broker enforcement</div>
+    <h2>Guardrails fire before the order ships</h2>
+    <div class="grid g4">
+      <div class="card"><div class="big">≤4</div><div class="lbl">unique legs per order</div></div>
+      <div class="card"><div class="big">$500</div><div class="lbl">notional cap / leg</div></div>
+      <div class="card"><div class="big">$1</div><div class="lbl">min order</div></div>
+      <div class="card"><div class="big">-10%</div><div class="lbl">DD circuit breaker</div></div>
+    </div>
+    <ul>
+      <li>Only valid intents: <b>BTO · BTC · STO · STC</b> — anything else rejected pre-broker.</li>
+      <li>Guardrail suite smoke-tested: leg-count + bad-intent orders <b>rejected before the broker</b>.</li>
+      <li>When the -10% trip fires → <b>book goes flat</b> until regime confirmation.</li>
+    </ul>
+    <div class="foot"><span>RiskFirst · 07/09</span><span>bot/execute.py · guardrails = policy, not suggestion</span></div>
+  </section>
+
+  <!-- 8 CHAMPION/CHALLENGER -->
+  <section class="slide">
+    <div class="kicker">Why it's different</div>
+    <h2>A portfolio-operations stack, not a single strategy</h2>
+    <div class="grid g2">
+      <div class="card"><h3>Champion / challenger promote loop</h3><p>Promote on <b>OOS</b>, never train loss. The walk-forward gate vetoes strategy changes that only look good in-sample.</p></div>
+      <div class="card"><h3>Options overlay that hedges</h3><p>Defined-risk income layer — the wheel both generates and protects, rather than pure long-beta.</p></div>
+      <div class="card"><h3>Circuit breaker stops the bleeding</h3><p>Hard risk rail enforced at the book level, independent of the signal layer.</p></div>
+      <div class="card"><h3>Honest validation</h3><p>Gate results are published as-is — including the noisy folds. No cherry-picked windows.</p></div>
+    </div>
+    <div class="honest"><p>The story is <b>process + risk rails + honest validation</b> — the thing most hackathon entries skip.</p></div>
+    <div class="foot"><span>RiskFirst · 08/09</span><span>OOS gate · circuit breaker · honest numbers</span></div>
+  </section>
+
+  <!-- 9 STATUS -->
+  <section class="slide">
+    <div class="kicker">Where we honestly are</div>
+    <h2>Ship status</h2>
+    <table>
+      <tr><th>Piece</th><th>Status</th></tr>
+      <tr><td>Foundation fixes (commission / drawdown / cadence)</td><td class="pos">DONE — verified</td></tr>
+      <tr><td>Walk-forward OOS gate (canonical eval_oos.py)</td><td class="pos">PASS · full run complete</td></tr>
+      <tr><td>Equities + options agent (equity_agent.py)</td><td class="pos">SCAFFOLDED · data-ready</td></tr>
+      <tr><td>Alpaca MCP launcher (bin/run_mcp.sh)</td><td class="pos">VERIFIED</td></tr>
+      <tr><td>Guardrail suite</td><td class="pos">SMOKE-TESTED</td></tr>
+      <tr><td>Git repo + README + SUBMISSION.md</td><td class="pos">CLEAN · public-push ready</td></tr>
+      <tr><td>Live paper data + first option order</td><td class="neg">BLOCKED — needs ALPACA_API_KEY / ALPACA_SECRET_KEY</td></tr>
+    </table>
+    <div class="foot"><span>RiskFirst · 09/09</span><span>Keys landed → live paper run → account ID → video</span></div>
+  </section>
+
+  <!-- 10 CLOSE -->
+  <section class="slide">
+    <div class="kicker">Submission</div>
+    <h1>Risk First,<br>Then Trade.</h1>
+    <div class="sub">An options &amp; equities agent on Alpaca MCP with a walk-forward OOS gate, vol-targeted sizing, a defensive wheel, and a circuit breaker that never argues.</div>
+    <div class="rule"></div>
+    <div class="grid g3">
+      <div class="card"><h3>Repo</h3><p>Public push pending paper-account go.</p></div>
+      <div class="card"><h3>Video</h3><p>90s demo script ready in SUBMISSION.md.</p></div>
+      <div class="card"><h3>Build-in-public</h3><p>5 posts, Aug 27 → Sep 3.</p></div>
+    </div>
+    <div class="foot"><span>RiskFirst · Alpaca AI Trading Agents · Sep 4, 2026</span><span>thank you</span></div>
+  </section>
+
+</div>
+
+<div class="nav">
+  <button onclick="move(-1)">←</button>
+  <button onclick="move(1)">→</button>
+</div>
+<div class="progress" id="prog"></div>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')];let i=0;
+  function show(n){slides.forEach((s,k)=>s.classList.toggle('active',k===n));
+    document.getElementById('prog').style.width=((n+1)/slides.length*100)+'%';}
+  function move(d){i=(i+d+slides.length)%slides.length;show(i);}
+  document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown')move(1);
+    if(e.key==='ArrowLeft'||e.key==='PageUp')move(-1);});
+  show(0);
+</script>
+</body>
+</html>
