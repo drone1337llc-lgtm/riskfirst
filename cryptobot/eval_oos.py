@@ -1,20 +1,16 @@
-"""Walk-forward out-of-sample evaluator — the HARD GATE for the crypto lane.
+"""Walk-forward out-of-sample evaluator — the HARD GATE for the crypto lane (Sprint A).
 
-Decides whether to keep building Cryptonaut. If OOS net Sharpe is not positive,
-the crypto lane stops (per adversarial council verdict 2026-08-24).
+Spec (adversarial council verdict 2026-08-24): train on [t-k, t-0.25k], eval on
+[t-0.25k, t], roll forward at least 4 folds. Report Sharpe + max drawdown net of
+realistic costs. PASS iff mean OOS Sharpe > 0.
 
-Design:
-- Sequential K folds (NO look-ahead leakage). Fold i trains only on bars BEFORE
-  the fold's OOS window, then evaluates on that window with deterministic actions.
-- Evaluation replicates live semantics EXACTLY: policy outputs a target allocation
-  from config.TARGET_ALLOCATIONS; we hold that allocation over the next bar and
-  mark-to-market. Commission=0 (Alpaca paper). This is the same decision the live
-  bot makes every DECISION_INTERVAL_S.
-- Metrics per fold + aggregated: net return, annualized Sharpe (log returns), max DD.
-- Verdict: PASS iff mean OOS annualized Sharpe > 0 (net) — no exceptions.
+Evaluation replicates live semantics: policy outputs a target allocation from
+config.TARGET_ALLOCATIONS, held over the next bar, mark-to-market. Commission = 0
+(Alpaca paper). This is the same decision the live bot makes every DECISION_INTERVAL_S.
 
 Usage:
-  python oos_eval.py --timesteps 300000 --folds 4 [--symbol ETH-USD]
+  python eval_oos.py --bars 2000 --folds 4 --timesteps 10000   # quick sample
+  python eval_oos.py                                           # full gate (default fetch)
 Exit code 0 = PASS, 1 = FAIL, 2 = error.
 """
 import argparse
@@ -36,12 +32,7 @@ from stable_baselines3.common.monitor import Monitor
 
 
 def simulate_oos(prices: pd.DataFrame, feats: pd.DataFrame, model) -> dict:
-    """Replay the policy's target allocation over an OOS window (deterministic).
-
-    Holds each chosen allocation for the NEXT bar (rebalance at bar close),
-    matching the live loop's every-5-min decision on 1-min bars. Returns
-    portfolio net-worth series and derived stats.
-    """
+    """Replay the policy's target allocation over an OOS window (deterministic)."""
     allocs = np.asarray(config.TARGET_ALLOCATIONS, dtype=float)
     close = prices["close"].to_numpy(dtype=float)
     feat = feats.to_numpy(dtype=np.float32)
@@ -53,18 +44,15 @@ def simulate_oos(prices: pd.DataFrame, feats: pd.DataFrame, model) -> dict:
 
     nw = np.empty(n)
     nw[0] = config.INITIAL_CASH
-    # initial: hold alloc decided on first decision bar; before that, cash.
     target = 0.0
     for i in range(n):
         if i >= win:
             obs = feat[i - win:i]          # shape (win, n_feat) = what live bot sees
             act, _ = model.predict(obs, deterministic=True)
             target = float(allocs[int(act)])
-        # apply target to return of bar i (log-return for smoothness)
         ret = 0.0 if i == 0 else np.log(close[i] / close[i - 1])
         nw[i] = nw[i - 1] * (1.0 - target + target * np.exp(ret)) if i > 0 else config.INITIAL_CASH
 
-    # --- stats ---
     nw = np.maximum(nw, 1e-9)
     logr = np.diff(np.log(nw))
     mu = logr.mean()
@@ -84,30 +72,47 @@ def simulate_oos(prices: pd.DataFrame, feats: pd.DataFrame, model) -> dict:
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--timesteps", type=int, default=300_000)
+    p.add_argument("--bars", type=int, default=0,
+                   help="number of bars to fetch; 0 = use config.LOOKBACK_BARS")
     p.add_argument("--folds", type=int, default=4)
-    p.add_argument("--out", default=os.path.join(config.STATE_DIR, "oos_eval.json"))
+    p.add_argument("--timesteps", type=int, default=300_000)
+    p.add_argument("--out", default=os.path.join(config.STATE_DIR, "eval_oos.json"))
     p.add_argument("--verbose", action="store_true")
     args = p.parse_args()
 
     prices, feats = data.load_dataset()
+    if args.bars and args.bars > 0:
+        prices = prices.iloc[-args.bars:]
+        feats = feats.iloc[-args.bars:]
     n = len(feats)
     win = config.WINDOW_SIZE
-    # each fold: test = 20% of data (rounded), training = everything before it
-    fold_size = max(win + 50, n // (args.folds + 1))
-    print(f"dataset {n} bars, folds={args.folds}, fold_test={fold_size}")
+
+    # Spec: each fold has a total window of length k = 4*eval_chunk.
+    # train = first 75% of the window ([t-k, t-0.25k]), eval = last 25% ([t-0.25k, t]).
+    # Roll forward so the last eval chunk ends at the dataset end.
+    # eval_chunk must be >= WINDOW_SIZE+1 so simulate_oos can build the final
+    # observation window; cap it so the requested fold count fits in the dataset
+    # (oldest fold's train start must leave >= WINDOW_SIZE warmup bars).
+    min_chunk = win + 1
+    desired = max(min_chunk, n // (args.folds + 8))
+    max_fit = max(min_chunk, (n - win - 20) // (args.folds + 3))
+    eval_chunk = min(desired, max_fit)
+    k = 4 * eval_chunk
+    print(f"dataset {n} bars, folds={args.folds}, eval_chunk={eval_chunk}, window_k={k}")
 
     results = []
     t0 = time.time()
-    for k in range(args.folds):
-        test_end = n - k * fold_size           # leave last fold(s) contiguous... use expanding train
-        test_start = test_end - fold_size
-        if test_start <= win + 20:
-            break  # not enough bars left for this fold
-        train_p = prices.iloc[:test_start]
-        train_f = feats.iloc[:test_start]
-        test_p = prices.iloc[test_start:test_end]
-        test_f = feats.iloc[test_start:test_end]
+    for j in range(args.folds):
+        eval_end = n - j * eval_chunk
+        eval_start = eval_end - eval_chunk
+        train_end = eval_start
+        train_start = max(0, eval_start - 3 * eval_chunk)
+        if train_start < win + 20:
+            break  # not enough bars for train window
+        train_p = prices.iloc[train_start:train_end]
+        train_f = feats.iloc[train_start:train_end]
+        test_p = prices.iloc[eval_start:eval_end]
+        test_f = feats.iloc[eval_start:eval_end]
 
         env = Monitor(GymV21CompatibilityV0(env=build_env(train_p, train_f)))
         model = PPO("MlpPolicy", env, verbose=0, device="cpu",
@@ -116,18 +121,21 @@ def main():
         model.learn(total_timesteps=args.timesteps)
 
         oos = simulate_oos(test_p, test_f, model)
-        oos["fold"] = k + 1
-        oos["train_bars"] = test_start
+        oos["fold"] = j + 1
+        oos["train_bars"] = train_end - train_start
         oos["test_start"] = str(test_p.index[0])
         oos["test_end"] = str(test_p.index[-1])
         results.append(oos)
-        print(f"fold {k+1}/{args.folds}: OOS sharpe={oos['ann_sharpe']:.3f} "
+        print(f"fold {j+1}/{args.folds}: OOS sharpe={oos['ann_sharpe']:.3f} "
               f"ret={oos['net_return']:.4f} maxdd={oos['max_dd']:.3f} "
-              f"train={test_start} test={test_start}-{test_end} "
+              f"train=[{train_start},{train_end}) test=[{eval_start},{eval_end}) "
               f"[{round(time.time()-t0,0)}s elapsed]", flush=True)
 
+    if len(results) < 4:
+        print(f"WARN: only {len(results)} folds evaluated (< 4 requested)")
+
     if not results:
-        print("ERROR: no folds evaluated (dataset too short?)")
+        print("ERROR: no folds evaluated (dataset too short for any window)")
         sys.exit(2)
 
     sharpe_arr = np.array([r["ann_sharpe"] for r in results])
@@ -137,6 +145,7 @@ def main():
     summary = {
         "symbol": config.SYMBOL,
         "timesteps": args.timesteps,
+        "bars_used": n,
         "folds_evaluated": len(results),
         "mean_oos_ann_sharpe": round(mean_sharpe, 4),
         "negative_sharpe_folds": neg,
