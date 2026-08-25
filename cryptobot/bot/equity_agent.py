@@ -121,7 +121,7 @@ def option_chain(underlying: str) -> list[dict]:
     """Latest option chain for one underlying (public data)."""
     client = OptionHistoricalDataClient()
     try:
-        chain = client.get_option_chain(OptionChainRequest(symbol=underlying))
+        chain = client.get_option_chain(OptionChainRequest(underlying_symbol=underlying))
     except Exception as exc:
         log.warning("chain unavailable for %s: %s", underlying, exc)
         return []
