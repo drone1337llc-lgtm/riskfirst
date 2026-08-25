@@ -30,7 +30,7 @@ from alpaca.data.historical import StockHistoricalDataClient, OptionHistoricalDa
 from alpaca.data.requests import OptionChainRequest
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from alpaca.trading.client import TradingClient
-from alpaca.trading.enums import OrderClass, PositionIntent, TimeInForce
+from alpaca.trading.enums import OrderClass, OrderType, PositionIntent, TimeInForce
 from alpaca.trading.requests import (
     MarketOrderRequest,
     OptionLegRequest,
@@ -103,7 +103,8 @@ def option_chain(underlying: str) -> list[dict]:
 def submit_multi_leg(legs: list[dict], intent: str) -> dict:
     """Submit a multi-leg paper option order (wheel: CSP / credit spread).
 
-    legs: [{symbol, qty, side, premium}] where side is 'buy'|'sell'.
+    legs: [{symbol, qty, side, premium}] where side is 'buy'|'sell';
+          qty is the leg ratio (maps to OptionLegRequest.ratio_qty).
     intent: 'bto'|'btc'|'sto'|'stc'.
     ENFORCES per-leg notional cap before submit.
     """
@@ -111,10 +112,14 @@ def submit_multi_leg(legs: list[dict], intent: str) -> dict:
         return {"error": "leg_count", "detail": "mleg requires 2..4 legs"}
     if len({l["symbol"] for l in legs}) != len(legs):
         return {"error": "dup_symbol", "detail": "all legs must have unique symbols"}
-    if intent.lower() not in _POS_INTENT:
+    if not isinstance(intent, str) or intent.lower() not in _POS_INTENT:
         return {"error": "bad_intent", "detail": "use bto|btc|sto|stc"}
     req_legs = [
-        OptionLegRequest(symbol=leg["symbol"], qty=leg["qty"], side=leg["side"])
+        OptionLegRequest(
+            symbol=leg["symbol"],
+            ratio_qty=leg["qty"],   # alpaca-py 0.43.5: ratio_qty (not qty) is the required leg field
+            side=leg["side"],
+        )
         for leg in legs
     ]
     for leg in legs:
@@ -128,6 +133,8 @@ def submit_multi_leg(legs: list[dict], intent: str) -> dict:
         order = OrderRequest(
             symbol=legs[0]["symbol"],
             order_class=OrderClass.MLEG,
+            type=OrderType.MARKET,  # paper mleg: market fills, guards on notional + legs
+            qty=1,                  # contract count; leg ratios below scale relative to it
             legs=req_legs,
             position_intent=PositionIntent[_POS_INTENT[intent.lower()]],
             time_in_force=TimeInForce.DAY,
