@@ -144,7 +144,7 @@ Set your **paper** (never live) keys and run the agent:
 ```bash
 # 1. Offline self-test (no keys, no network)
 cd options
-python -m pytest tests -v                    # 50 tests, all offline
+python -m pytest tests -v                    # 60 tests, all offline
 
 # 2. Sanity: import the whole package
 python -c "import options.agent; print('ok')"
@@ -161,11 +161,17 @@ python -c "from options.agent import Agent; a=Agent(); print(a.run_cycle())"
 #    (paper forced: the server env always gets ALPACA_PAPER=true)
 ```
 
-`decisions.db` is written to the working directory — every trade, rejection,
-and account snapshot is timestamped with reasoning for the P&L story.
+`decisions.db` lives in `state/paper/` — every trade, rejection, and account
+snapshot is timestamped with reasoning for the P&L story. For a scheduled
+P&L track record run the runner instead of the CLI (market-hours gate,
+session recovery, cron-friendly):
+    ALPACA_IS_LIVE=1 ../cryptobot/.venv/bin/python -m options.runner --once
+    ALPACA_IS_LIVE=1 ../cryptobot/.venv/bin/python -m options.runner
 
-> **Safety rail:** `config.validate_paper_config()` refuses `ALPACA_IS_LIVE=1`
-> unless you explicitly re-enable it — the hackathon is paper-only.
+> **Safety rail:** `config.validate_paper_config()` refuses
+> `ALPACA_REAL_TRADING=1`; `ALPACA_IS_LIVE=1` is allowed because the MCP
+> server subprocess is hard-forced to `ALPACA_PAPER=true` (client.py) —
+> the hackathon is paper-only, P&L judged on paper fills.
 
 ---
 
@@ -173,7 +179,7 @@ and account snapshot is timestamped with reasoning for the P&L story.
 
 ```bash
 cd options
-python -m pytest -q                       # → 50 passed (offline)
+python -m pytest -q                       # → 60 passed (offline)
 python -c "import options.agent; print('import ok')"
 ```
 
@@ -196,6 +202,6 @@ The unit suite verifies (zero network):
 4. **Auditable P&L** — every decision persisted with reasoning; the arbiter's
    rejections are as important as the fills.
 
-Built paper-only, strictly Level-3-legal, tested offline (50 tests incl.
+Built paper-only, strictly Level-3-legal, tested offline (60 tests incl.
 MCP contract suite + LLM referee), ready to go live against the real Alpaca
 MCP server.
