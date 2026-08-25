@@ -1,6 +1,6 @@
 """LLM risk referee — the advisory LLM at the decision center.
 
-VOLTAIR's pitch claims an "LLM at the decision center." This module makes that
+The pitch claims an "LLM at the decision center." This module makes that
 claim literally true: every proposal that passes the deterministic risk
 arbiter is ALSO reviewed by a local LLM, and the LLM's verdict + reasoning are
 written to the decision log as part of the auditable P&L narrative.

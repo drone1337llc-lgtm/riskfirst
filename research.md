@@ -95,7 +95,7 @@ From the official rules (lablab.ai live page + the community "HACKATHON.md" reca
 - **Options as the core instrument** (debit spreads, income/hedging) — never a crypto/equity-only bot.
 - **Multi-agent / thesis-debate** architecture with an LLM arbiter deciding between directions.
 - **IV-rank-driven structure selection** (their market-condition → structure matrix is a strong, judge-visible differentiator).
-- **Real infra chops:** MCP server integration (Dockerized `ghcr.io/alpacahq/alpaca-mcp`), typed wrappers, a live dashboard, SQLite decision logs, **unit tests on Greeks/sizing/guardrails** (offline, no keys).
+  Real infra chops: MCP server integration (stdio uvx alpaca-mcp-server, paper-pinned), typed wrappers, a live dashboard, SQLite decision logs, unit tests on Greeks/sizing/guardrails (offline, no keys).
 - **Strict, quantified risk management** presented explicitly.
 - **A proven, reproducible backtest** + short DTL of edge (days to milestones in the README).
 
