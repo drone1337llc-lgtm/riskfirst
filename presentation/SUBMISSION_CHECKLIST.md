@@ -27,7 +27,7 @@
 - [ ] **Fresh Alpaca paper account** (created for this hackathon — do NOT reuse). Start $100k. — **BLOCKED: Surge must create + provide keys.**
 - [ ] **Dedicated paper account ID** — *placeholder:* `PASTE_ACCOUNT_ID_HERE` (fill from the paper dashboard before submission).
 - [ ] **Options Level 3 confirmed** on the paper account (required for covered calls / CSP / protective puts).
-- [ ] **Live-paper traded the whole window** Aug 28 → Sep 4. Auto-armed: the moment keys land, `alpaca-key-watch` (1-min cron) fires once → verifies REST + MCP → starts `start_paper_loop.sh`; `paper-loop-watch` (1-min cron) restarts the loop if it dies or wedges during NY RTH. Track record accrues unattended in `decisions.db` → export P&L for the submission.
+- [ ] **Live-paper traded the whole window** Aug 28 → Sep 4. Auto-armed: the moment keys land, `alpaca-key-watch` (1-min cron) fires once → verifies REST + MCP → starts `start_paper_loop.sh`; `paper-loop-watch` (1-min cron) restarts the loop if it dies or wedges during NY RTH. Track record accrues unattended in state/paper/decisions.db → export PTrack record accrues unattended in `decisions.db` → export P&L for the submission.L via bin/export_pnl.py (report + stats land in state/paper/, auto-included in daily DR bundle; manual: cryptobot/.venv/bin/python bin/export_pnl.py --mode PAPER).
 - [ ] Verify agent ran via **Alpaca MCP** (mandatory) — capture an MCP client log/screenshot (`keys_landed.log` records the MCP boot verification).
 
 ## 5. Build-in-public (social challenge track)
