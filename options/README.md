@@ -2,9 +2,10 @@
 
 **Autonomous paper options-trading agent** built for the *Alpaca AI Trading
 Agents Hackathon* (lablab.ai). It scans US equity/ETF option chains (SPY/QQQ),
-picks a paper-legal structure by **IV rank**, sizes at **≤2% equity**, and gates
-every idea behind a **risk arbiter** — all decisions logged to SQLite for an
-auditable P&L.
+picks a paper-legal structure by **IV rank**, sizes at **≤2% equity**, gates
+every idea behind a **risk arbiter**, and sends every accepted proposal to an
+**LLM referee** (local Ollama) whose verdict is written to the SQLite audit
+log — all decisions logged for an auditable P&L.
 
 > **Paper only.** The real Alpaca MCP integration is wired but gated behind a
 > `LIVE` flag. This scaffold builds and tests fully **offline** with no keys.
@@ -100,7 +101,9 @@ options/
 │   ├── options.py     # Black-Scholes Greeks, /v2/options contract scan + filters
 │   ├── strategies.py  # covered_call, cash_secured_put, protective_put/collar
 │   ├── client.py      # MockClient (offline) + McpClient (real MCP, LIVE-gated)
-│   └── agent.py       # decision loop, RiskArbiter, SQLite decisions.db
+│   ├── llm_referee.py # LLM risk referee (local Ollama, advisory)
+│   └── agent.py       # decision loop, RiskArbiter, LLM referee, SQLite
+
 ├── tests/
 │   └── test_options.py # 21 offline unit tests (Greeks, sizing, risk, spread)
 └── README.md
@@ -117,8 +120,16 @@ options/
 * **`strategies.py`** — one clear function per paper-legal strategy; each
   returns a sized `OrderProposal` or `None`.
 * **`agent.py`** — the loop: read account → scan SPY/QQQ chains → pick
-  structure by IV rank → size at 2% → risk-gate → submit via client → log to
-  SQLite `decisions.db` with full reasoning.
+  structure by IV rank → size at 2% → risk-gate → LLM referee review →
+  submit via client → log to SQLite `decisions.db` with full reasoning.
+* **`llm_referee.py`** — the LLM at the decision center. Every proposal the
+  deterministic arbiter accepts is ALSO reviewed by a local LLM (Ollama;
+  default `qwen2.5:1.5b` so it fits alongside prod services, override with
+  `OLLAMA_MODEL`). The verdict + reasoning are written to the decision log.
+  By default it is **advisory**: hard gates in code are the enforcement layer
+  (local small models hallucinate numeric checks, so the LLM never holds sole
+  authority over a real decision). Set `OLLAMA_REFEREE_ENFORCE=1` to let it
+  veto. Fail-open on any outage — never stalls a cycle.
 * **`client.py`** — a thin adapter. `MockClient` runs deterministic synthetic
   markets offline (no keys/network); `McpClient` talks to the REAL Alpaca MCP server
   (`uvx alpaca-mcp-server`, stdio JSON-RPC) gated behind
@@ -133,7 +144,7 @@ Set your **paper** (never live) keys and run the agent:
 ```bash
 # 1. Offline self-test (no keys, no network)
 cd options
-python -m pytest tests -v                    # 36 tests, all offline
+python -m pytest tests -v                    # 50 tests, all offline
 
 # 2. Sanity: import the whole package
 python -c "import options.agent; print('ok')"
@@ -185,5 +196,6 @@ The unit suite verifies (zero network):
 4. **Auditable P&L** — every decision persisted with reasoning; the arbiter's
    rejections are as important as the fills.
 
-Built paper-only, strictly Level-3-legal, tested offline (36 tests incl. MCP
-contract suite), ready to go live against the real Alpaca MCP server.
+Built paper-only, strictly Level-3-legal, tested offline (50 tests incl.
+MCP contract suite + LLM referee), ready to go live against the real Alpaca
+MCP server.

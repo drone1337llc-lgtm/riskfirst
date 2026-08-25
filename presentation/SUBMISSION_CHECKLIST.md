@@ -25,7 +25,7 @@
   3. The agent architecture (multi-agent diagram)
   4. The IV-rank structure matrix
   5. The risk framework table
-  6. How it uses Alpaca MCP + offline testing (63 tests)
+  6. How it uses Alpaca MCP + offline testing (77 tests)
   7. The OOS gate + Cryptonaut diagnosis
   8. Live-paper track record
   9. Why it's an agent, not a script

@@ -24,7 +24,7 @@ That's reasoning about market conditions, not a hardcoded trigger. It's what sep
 
 - **Black-Scholes Greeks computed locally** (delta/gamma/theta/vega/rho), implied vol solved by bisection — no external pricing API. **Verified by put-call parity tests.**
 - **Reads live chains** via the Alpaca MCP server, picks structure by IV rank, sizes at ≤2% equity.
-- **Fully offline-tested** against a deterministic mock client — 21 passing unit tests (Greeks, parity, IV recovery, sizing, drawdown blocks, spread/OI screens). Zero keys needed.
+- **Fully offline-tested** against a deterministic mock client — 77 passing unit tests (Greeks, parity, IV recovery, sizing, drawdown blocks, spread/OI screens, MCP contract, LLM referee). Zero keys needed.
 
 ## The risk framework
 
@@ -46,7 +46,7 @@ The momentum core (Cryptonaut) was diagnosed to **three real loss drivers** — 
 - **Trades via Alpaca MCP** (mandatory) ✓
 - **Multi-agent LLM reasoning + IV-rank structure selection** (creativity) ✓
 - **Strict, quantified risk gates** (responsibility) ✓
-- **21 passing offline tests + positive OOS Sharpe** (technical credibility) ✓
+- **77 passing offline tests + positive OOS Sharpe** (technical credibility) ✓
 - **Auditable SQLite decision log** (explainability) ✓
 
 **VOLTAIR — debate the market, define the risk, harvest the premium.**

@@ -33,11 +33,11 @@
 
 **Built:** The VOLTAIR scaffold — the multi-agent system. Bull / bear / neutral strategy sub-agents, an **IV-rank structure matrix** (high IVR → sell premium; low IVR → buy protection), and a **Risk Arbiter** that gates every idea. Black-Scholes Greeks computed **locally** (no external pricing API), implied vol by bisection, verified by **put-call parity**.
 
-**Shipped:** **21 passing offline unit tests** — Greeks, parity, IV recovery, 2% sizing, drawdown blocks, spread/OI screens. Zero keys, zero network. Paper-legal, Level-3-only: covered calls, cash-secured puts, protective-put/collar. **No naked shorts.**
+**Shipped:** **50 passing offline unit tests** — Greeks, parity, IV recovery, 2% sizing, drawdown blocks, spread/OI screens, MCP contract parsing, and the LLM referee. Zero keys, zero network. Paper-legal, Level-3-only: covered calls, cash-secured puts, protective-put/collar. **No naked shorts.**
 
 **Lesson learned:** A trading agent's credibility is its test suite. Offline, deterministic, keyless tests are what let you say "the risk math is verified" without touching a paper dollar.
 
-**Hook:** "63 tests on an options agent (27 cryptobot + 36 MCP contract) that run offline with zero keys. Here's how."
+**Hook:** "77 tests on an options agent (27 cryptobot + 50 options incl. MCP contract + LLM referee) that run offline with zero keys. Here's how."
 
 ---
 

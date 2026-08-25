@@ -28,6 +28,7 @@ VOLTAIR is a **multi-agent system with an LLM at the decision center**:
 - **Neutral/Income sub-agent** proposes a **cash-secured put** — sell an OTM put, fully cash-collateralized, to buy dips at a discount while collecting premium.
 - **IV-Rank Scorer** — computes each underlying's implied-vol percentile from chain history and routes the debate: **high IVR → sell premium (bull/neutral); low IVR → buy cheap protection (bear).** This is the agent's market-condition judgment.
 - **Risk Arbiter** — the referee. **Every** proposal must clear it before any order is placed. It enforces the risk framework below and records rejections as loudly as fills.
+- **LLM Referee** — the LLM at the decision center. Every proposal the arbiter accepts is then reviewed by a local LLM (Ollama, `qwen2.5:1.5b` — small enough to run alongside the stack) whose verdict and reasoning land in the same SQLite audit log. Advisory by default: the hard gates in code do the enforcing, so the LLM can never silently approve or block a trade; it is the qualitative second set of eyes that makes the decision log an honest narrative.
 
 The agent **reasons about market conditions** — not hardcoded entry rules — because the structure *selection* is driven by IV rank, and the *sizing* is driven by a live portfolio risk model.
 
@@ -51,7 +52,7 @@ VOLTAIR trades through the **Alpaca MCP server** (Dockerized `ghcr.io/alpacahq/a
 | Cash reserve | **10%** buffer |
 
 ### P&L story (honest, defensible)
-The crypto-momentum core (**Cryptonaut**) was diagnosed to three real loss drivers and gated behind a **walk-forward out-of-sample evaluator** that showed **positive OOS Sharpe**. That same discipline — **never claim an edge you haven't validated OOS** — governs VOLTAIR: every structure and gate is unit-tested offline (**21 passing tests** covering Black-Scholes Greeks, put-call parity, IV recovery, 2% sizing, drawdown blocks, spread/OI screens), so the live paper track record is *measured*, not manufactured.
+The crypto-momentum core (**Cryptonaut**) was diagnosed to three real loss drivers and gated behind a **walk-forward out-of-sample evaluator** that showed **positive OOS Sharpe**. That same discipline — **never claim an edge you haven't validated OOS** — governs VOLTAIR: every structure and gate is unit-tested offline (**77 passing tests** covering Black-Scholes Greeks, put-call parity, IV recovery, 2% sizing, drawdown blocks, spread/OI screens, MCP contract parsing, and the LLM referee), so the live paper track record is *measured*, not manufactured.
 
 **Built to the actual scoring criteria**: options-as-core (mandatory), MCP/CLI (mandatory), multi-agent LLM reasoning, risk gates, and an auditable SQLite decision log (`decisions.db`) that turns every trade and every rejection into a P&L narrative.
 

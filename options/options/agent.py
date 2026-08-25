@@ -17,6 +17,7 @@ from datetime import date, datetime
 from typing import Optional
 
 from . import config, client as client_mod, options as opt, strategies as strat
+from .llm_referee import LLMReferee
 
 
 # --------------------------------------------------------------------------- #
@@ -137,12 +138,15 @@ class Agent:
     def __init__(self, client: Optional[client_mod.BaseClient] = None,
                  limits: Optional[config.RiskLimits] = None,
                  db_path: str = "decisions.db",
-                 today: Optional[date] = None):
+                 today: Optional[date] = None,
+                 referee: Optional[LLMReferee] = None):
         self.client = client or client_mod.build_client()
         self.limits = limits or config.RiskLimits()
         self.db = DecisionLog(db_path)
         self.today = today or date.today()
         self.arbiter = RiskArbiter(self.limits)
+        # LLM referee (advisory veto gate). None => deterministic-only mode.
+        self.referee = referee
 
     def held_shares(self, symbol: str) -> int:
         for p in self.client.get_positions():
@@ -156,6 +160,14 @@ class Agent:
 
     def _gate_and_submit(self, proposal, account: dict, cash: float) -> bool:
         accepted, reason = self.arbiter.check(proposal, account, cash)
+        if self.referee is not None:
+            approve, rreason = self.referee.review(proposal, account, cash)
+            if not approve:
+                if self.referee.enforce:
+                    accepted = False
+                    reason = f"LLM referee veto: {rreason}"
+                else:
+                    reason = f"{reason} | LLM opinion: {rreason}"
         self.db.log_decision(proposal, accepted, reason)
         if accepted:
             self.client.submit_order(proposal)
