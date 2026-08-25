@@ -1,13 +1,8 @@
 """CLI entrypoint for the Alpaca options agent.
 
 Usage (paper-only):
-    python -m options.cli                    # MockClient dry-run + LLM referee (local Ollama)
-    ALPACA_IS_LIVE=1 python -m options.cli   # real Alpaca MCP (paper keys required)
-
-ALPACA_IS_LIVE=1 selects the MCP lane; the server subprocess is hard-forced
-to ALPACA_PAPER=true (client.py), so this is paper-only even with live keys.
-For a scheduled P&L track record use options.runner instead (market-hours
-gate, session recovery, cron-friendly).
+    python -m options.agent                  # MockClient dry-run + LLM referee (local Ollama)
+    ALPACA_IS_LIVE=1 python -m options.agent # real Alpaca MCP (paper keys required)
 
 Runs one decision cycle and prints the executed actions.
 
@@ -27,18 +22,17 @@ from .llm_referee import LLMReferee
 
 
 def main() -> int:
-    config.validate_paper_config()   # refuses real-money rail; checks Level 3
-    use_referee = (
-        os.environ.get("OLLAMA_REFEREE_DISABLED", "0") != "1"
-        and "--no-referee" not in sys.argv
+    config.validate_paper_config()   # refuses live; checks Level 3
+    use_referee = not (
+        os.environ.get("OLLAMA_REFEREE_DISABLED", "0") == "1"
+        or "--no-referee" in sys.argv
     )
     referee = LLMReferee() if use_referee else None
-    db_path = str(config.STATE_DIR / "decisions.db")
-    a = agent.Agent(db_path=db_path, referee=referee)
+    a = agent.Agent(db_path="decisions.db", referee=referee)
     try:
         decisions = a.run_cycle()
         print(json.dumps(decisions, indent=2))
-        print(f"\nExecuted {len(decisions)} action(s). Log -> {db_path}")
+        print(f"\nExecuted {len(decisions)} action(s). Log -> decisions.db")
         if referee is not None:
             mode = "ENFORCE" if referee.enforce else "advisory"
             print(f"LLM referee: {referee.model} via {referee.url} ({mode})")

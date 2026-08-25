@@ -5,3 +5,4 @@ cryptobot/state/
 cryptobot/checkpoints/
 __pycache__/
 smoke_mcp_live.py
+state/

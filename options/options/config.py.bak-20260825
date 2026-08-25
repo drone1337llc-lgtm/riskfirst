@@ -7,21 +7,13 @@ simulated fills at mid or limit, never real money — P&L is our judging metric.
 Paper keys come from the environment (never committed):
     ALPACA_API_KEY      paper key id
     ALPACA_SECRET_KEY   paper secret
-
-Modes:
-    ALPACA_IS_LIVE=1       talk to the REAL Alpaca MCP server — but the
-                           server subprocess is hard-forced to ALPACA_PAPER=true
-                           (client.py), so this is a *paper* lane, never real.
-    ALPACA_REAL_TRADING=1  FORBIDDEN. validate_paper_config() refuses it.
+Optionally:
+    ALPACA_IS_LIVE      0/1  (must be 0 for the hackathon; blocks real trades)
 """
 from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from pathlib import Path
-
-# Shared state dir for the paper lane (audit trail + runner status).
-STATE_DIR: Path = Path(__file__).resolve().parents[2] / "state" / "paper"
 
 # --------------------------------------------------------------------------- #
 # Risk parameters — hard gates enforced by the risk arbiter in agent.py.
@@ -86,12 +78,7 @@ def require_level_3() -> None:
 
 
 def live_mode() -> bool:
-    """Whether to talk to the real Alpaca MCP server (paper-forced inside).
-
-    ALPACA_IS_LIVE=1 selects McpClient. The server subprocess env pins
-    ALPACA_PAPER=true (client.py), so this lane is paper-only no matter
-    which keys are set.
-    """
+    """Whether to talk to the real Alpaca MCP. Paper-only hackathon -> False."""
     return os.environ.get("ALPACA_IS_LIVE", "0") == "1"
 
 
@@ -104,17 +91,13 @@ def keys() -> tuple[str, str]:
 
 
 def validate_paper_config() -> None:
-    """Fail fast if real-money trading is explicitly requested.
+    """Fail fast if someone accidentally enables live trading.
 
-    The hackathon is paper-only. ALPACA_IS_LIVE=1 is FINE — it selects the
-    MCP lane whose server subprocess is hard-forced to ALPACA_PAPER=true.
-    ALPACA_REAL_TRADING=1 is the only setting refused here; combined with
-    the client-side paper pin it makes accidental real orders impossible.
+    The hackathon is paper-only; this is our safety rail.
     """
-    if os.environ.get("ALPACA_REAL_TRADING", "0") == "1":
+    if live_mode():
         raise RuntimeError(
-            "ALPACA_REAL_TRADING=1 is forbidden. "
-            "Paper-only hackathon — P&L is judged on paper fills "
-            "(ALPACA_PAPER=true is pinned inside the MCP lane)."
+            "ALPACA_IS_LIVE=1 is forbidden for this scaffold. "
+            "Paper-only hackathon: options + P&L judged on paper fills."
         )
     require_level_3()
