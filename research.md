@@ -120,3 +120,8 @@ From the official rules (lablab.ai live page + the community "HACKATHON.md" reca
 - Volatility context (Aug 2026): https://coincodex.com/most-volatile/ · https://www.analyticsinsight.net/cryptocurrency-analytics-insight/best-high-volatility-crypto-coins-for-trading-in-2026
 
 *Note: live crypto list and per-token fee tables are subject to change — verify against `/v2/assets` at build time.*
+
+## Fleet egress vs submission portal (verified 2026-08-25 07:15 MDT)
+- lablab.ai (main, /login, /event/alpaca-ai-trading-agents-hackathon) returns 403 (Cloudflare "Just a moment" challenge) from BOTH fleet egress points: cudacuda .67 (curl) and teamamd .74 (curl + headless Chrome --dump-dom).
+- This is standard bot protection, NOT an outage: a human browser session (residential IP, real Chrome) passes the challenge. Surge submits from his own browser; do not attempt programmatic submission from fleet.
+- Paper loop verified healthy pre-market: crons intact (alpaca-key-watch + paper-loop-watch), mock write-through at 06:02 (n=2 TRADE decisions, equity $100k), no runner process (correct — RTH-gated, pre-market).
