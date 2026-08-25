@@ -1,0 +1,5 @@
+# RiskFirst (Alpaca AI Trading Agents hackathon) — runtime deps
+# Python 3.10 venv on cudacuda (uv-managed). Install: python -m pip install -r requirements.txt
+alpaca-py==0.43.5
+yfinance==1.6.0
+pytest>=8.0          # guardrail test suite (cryptobot/tests)

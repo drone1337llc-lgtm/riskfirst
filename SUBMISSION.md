@@ -64,6 +64,19 @@ cryptobot/
 bin/run_mcp.sh           Alpaca MCP server launcher (stdio/http/sse)
 ```
 
+## Run it yourself (key-free demo)
+
+```
+python -m pip install -r requirements.txt
+cd cryptobot && .venv/bin/python -m bot.equity_agent --demo --symbol SPY
+```
+
+No Alpaca keys needed: bars come from yfinance, the option chain is synthetic
+(clearly labeled), the SAME guardrails run as the paper path (`_guard_legs`:
+2-4 unique legs, $500/leg cap, $1 floor, intent whitelist), and the fill is
+SIMULATED. Swap in paper keys and the identical order-builder hits the real
+Alpaca paper API. Full guardrail suite: `python -m pytest` (22 tests).
+
 ## Build-in-public (posts scheduled Aug 27 → Sep 3)
 
 1. **Announce:** "I adversarial-reviewed my own bot and found it was built on a wrong assumption. Here's what a real options/equities entry for the Alpaca hackathon looks like." + the 3 foundation fixes.
