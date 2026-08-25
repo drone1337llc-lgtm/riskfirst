@@ -6,3 +6,5 @@ cryptobot/checkpoints/
 __pycache__/
 smoke_mcp_live.py
 state/
+options/decisions.db
+*.bak*
