@@ -1,0 +1,3 @@
+# Core is dependency-free (standard library only) for offline tests.
+# Optional, only needed for the LIVE Alpaca MCP backend:
+alpaca-trade-api>=4.0.0
