@@ -37,7 +37,7 @@
 
 **Lesson learned:** A trading agent's credibility is its test suite. Offline, deterministic, keyless tests are what let you say "the risk math is verified" without touching a paper dollar.
 
-**Hook:** "21 tests on an options agent that run offline with zero keys. Here's how."
+**Hook:** "63 tests on an options agent (27 cryptobot + 36 MCP contract) that run offline with zero keys. Here's how."
 
 ---
 
