@@ -28,7 +28,7 @@ Alt (shorter):
 **How it was built (the honest part).** An adversarial design review on day 0 found the original crypto-only PPO bot was (a) a requirements mismatch for an options/equities/MCP hackathon and (b) trading with **zero out-of-sample validation**. We fixed the process before adding features:
 
 1. **Killed the train↔live mismatch** — the training env charged 3% commission paper never pays (policy learned to hug cash); `COMMISSION=0`, `DRAWDOWN_LAMBDA=3.0→0.4`, `DECISION_INTERVAL_S=300` (act every 5 min live, still train on 1-min bars).
-2. **Built a walk-forward OOS gate** (`eval_oos.py`, 75/25 train/eval windows, 4 folds, ~300k timesteps) — the crypto lane stays only if out-of-sample Sharpe is positive **net**. Spec-compliant full 300k run: mean annualized Sharpe **2.35** (seed-42 deterministic), folds **[-2.43, 14.57, -2.86, 0.13]** — **1/4 negative**, PASS (the crypto lane stays as the honestly-framed secondary lane; the noisy folds are exactly why it is not the primary).
+2. **Built a walk-forward OOS gate** (`eval_oos.py`, 75/25 train/eval windows, 4 folds, ~300k timesteps) — the crypto lane stays only if out-of-sample Sharpe is positive **net**. Spec-compliant full 300k run: mean annualized Sharpe **2.35** (seed-42 deterministic), folds **[-2.43, 14.57, -2.86, 0.13]** — **2/4 negative**, PASS (the crypto lane stays as the honestly-framed secondary lane; the noisy folds are exactly why it is not the primary).
 3. **Re-centered the submission** on the options + equities agent with an MCP tool surface — the crypto PPO is honestly framed as a *secondary* lane, kept only because it passed the gate.
 
 **Why it's different.** Most entries demo a single strategy. This one is a **portfolio-operations stack**: a champion/challenger walk-forward promote loop (promote on OOS, not train loss), a hard OOS gate that vetoes strategy changes, an options overlay that can actually hedge, and a circuit-breaker that stops the bleeding. The story is *process + risk rails + honest validation*, not a hype backtest.
@@ -43,7 +43,7 @@ Alt (shorter):
 
 ## Key numbers (honest, current)
 
-- OOS walk-forward gate (75/25 window, 4 folds, 300k timesteps): mean ann. Sharpe **2.35** (seed-42 deterministic), folds **[-2.43, 14.57, -2.86, 0.13]** (1/4 negative — high variance, hence secondary lane only).
+- OOS walk-forward gate (75/25 window, 4 folds, 300k timesteps): mean ann. Sharpe **2.35** (seed-42 deterministic), folds **[-2.43, 14.57, -2.86, 0.13]** (2/4 negative — high variance, hence secondary lane only).
 - Risk rails: $500/leg notional cap, ≤4 legs/order, -10% DD circuit-breaker, $1 min.
 - Foundation: 3%→0% commission train/live match, drawdown lambda 0.4, 5-min decision cadence.
 

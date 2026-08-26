@@ -107,9 +107,9 @@
       <tr><td>2</td><td>25–100% → next 25%</td><td class="neg">−9.43</td></tr>
       <tr><td>3</td><td>50–100% → next 25%</td><td class="pos">+5.58</td></tr>
       <tr><td>4</td><td>75–100% → next 25%</td><td class="pos">+26.95</td></tr>
-      <tr><td colspan="2"><b>Spec-compliant full run (canonical eval_oos.py, 300k timesteps)</b></td><td class="pos"><b>mean 5.88 · 1/4 negative</b></td></tr>
+      <tr><td colspan="2"><b>Spec-compliant full run (canonical eval_oos.py, 300k timesteps)</b></td><td class="pos"><b>mean 2.35 · 2/4 negative</b></td></tr>
     </table>
-    <div class="honest"><p>Honest framing: the gate PASSED (mean +5.88 net, 1/4 negative fold — fold 2 at −9.43 is exactly why the breaker matters). The earlier expanding-train variant showed 2/4 negative folds; the spec-compliant 75/25 run is the canonical verdict. High variance → crypto stays a <b>secondary lane</b>, never the headline.</p></div>
+    <div class="honest"><p>Honest framing: the gate PASSED (mean +2.35 net, 2/4 negative folds — folds 1 and 3 at −2.43 / −2.86 are exactly why the breaker matters). The earlier expanding-train variant showed 2/4 negative folds; the spec-compliant 75/25 run is the canonical verdict. High variance → crypto stays a <b>secondary lane</b>, never the headline.</p></div>
     <div class="foot"><span>RiskFirst · 04/09</span><span>eval_oos.py · promote on OOS, not train loss</span></div>
   </section>
 

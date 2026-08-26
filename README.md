@@ -29,7 +29,7 @@ worked. So:
   evaluator, and made it a **hard gate**: crypto lane stays only if OOS Sharpe is
   positive net.
 - Result (spec-compliant 75/25 window, 4 folds, 300k timesteps): mean annualized
-  Sharpe **2.35** (seed-42 deterministic), folds [-2.43, 14.57, -2.86, 0.13] — 1/4 folds negative
+  Sharpe **2.35** (seed-42 deterministic), folds [-2.43, 14.57, -2.86, 0.13] — 2/4 folds negative
   (noisy folds 1,3). **Verdict: viable → crypto stays a secondary lane,
   the options/equities agent is the primary submission.**
 
