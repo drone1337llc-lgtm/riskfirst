@@ -200,5 +200,32 @@ class TestAgentCycle(unittest.TestCase):
             agent.close()
 
 
+
+    def test_circuit_breaker_flattens_at_deep_drawdown(self):
+        # Demo step 5 integration pin: force a >-10% drawdown from the equity
+        # high-water mark and watch the agent go FLAT (trailing circuit-breaker
+        # through the real run_cycle path, not just arbiter math).
+        client = MockClient(equity=100_000, today=TODAY)
+        client.set_shares("SPY", 300)
+        client.set_cash(80_000)
+        agent = Agent(client=client, db_path=":memory:")
+        try:
+            # Establish the high-water mark with a normal cycle.
+            agent.run_cycle()
+            self.assertEqual(agent.arbiter.equity_high, 100_000.0)
+            # -10.5% from high-water => forced flatten + halt.
+            client.set_equity(89_500)
+            decisions = agent.run_cycle()
+            self.assertEqual(decisions[0]["action"], "FLATTEN")
+            self.assertIn("circuit breaker", decisions[0]["reason"])
+            flattens = [o for o in client.orders if o.get("action") == "FLATTEN"]
+            self.assertEqual(len(flattens), 1)
+            # Recovery above the high-water mark re-arms the agent.
+            client.set_equity(105_000)
+            decisions = agent.run_cycle()
+            self.assertNotIn("FLATTEN", [d["action"] for d in decisions])
+        finally:
+            agent.close()
+
 if __name__ == "__main__":
     unittest.main()
