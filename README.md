@@ -29,8 +29,8 @@ worked. So:
   evaluator, and made it a **hard gate**: crypto lane stays only if OOS Sharpe is
   positive net.
 - Result (spec-compliant 75/25 window, 4 folds, 300k timesteps): mean annualized
-  Sharpe **5.88**, folds [0.41, -9.43, 5.58, 26.95] — 1/4 folds negative
-  (fold 2 noise). **Verdict: viable → crypto stays a secondary lane,
+  Sharpe **2.35** (seed-42 deterministic), folds [-2.43, 14.57, -2.86, 0.13] — 1/4 folds negative
+  (noisy folds 1,3). **Verdict: viable → crypto stays a secondary lane,
   the options/equities agent is the primary submission.**
 
 ## Layout
@@ -83,7 +83,7 @@ python -m cryptobot.bot.run         # 24/7 paper loop
 
 ## Honest status
 
-- OOS gate: **PASS** (spec-compliant mean ann. Sharpe 5.88, 1/4 folds negative,
+- OOS gate: **PASS** (seed-42 deterministic mean ann. Sharpe 2.35, 2/4 folds negative,
   high variance) — crypto lane kept as secondary.
 - Options + equities lane: scaffolded and API-verified against alpaca-py 0.43.5
   (multi-leg `mleg` orders, `PositionIntent` BTO/BTC/STO/STC, ≤ 4 legs, option

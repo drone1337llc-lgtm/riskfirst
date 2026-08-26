@@ -14,7 +14,7 @@
 - [ ] **Tags:** `AI agent`, `options`, `Alpaca MCP`, `risk management`, `IV rank`, `paper trading`, `multi-agent`, `volatility` (copy these at submission)
 
 ## 2. Media deliverables
-- [x] **Cover image** — `cover.png` (1280×720, rendered from `cover-src.html`, RiskFirst branding, honest framing incl. 5.88 Sharpe + 1/4 negative folds)
+- [x] **Cover image** — `cover.png` (1280×720, rendered from `cover-src.html`, RiskFirst branding, honest framing incl. 2.35 seed-42 Sharpe + 2/4 negative folds)
 - [x] **Video presentation** — `demo-reel.mp4` (30 s, 10 slides × 3 s, rendered from the current 10-slide deck; rebuild with `bin/rebuild_reel.sh` after any deck change). *Live-demo version to be re-recorded when real keys land (placeholder until then).*
 - [x] **Slide deck** — `slides/index.html` (10 slides, RiskFirst-branded, 128-test + OOS-gate honest numbers)
 
@@ -41,7 +41,7 @@
 - [x] **Paper only**, fresh account, $100k start ✓ (paper hard-forced in client)
 - [x] **No live keys committed** ✓
 - [x] **128 offline tests pass** (verified: 57 cryptobot + 71 options incl. MCP contract, LLM referee, runner) ✓
-- [x] Walk-forward OOS Sharpe **positive** (5.88 mean, 1/4 negative folds — honestly framed) ✓
+- [x] Walk-forward OOS Sharpe **positive** (2.35 seed-42 mean, 2/4 negative folds — honestly framed) ✓
 
 ## 7. Final freeze
 - [ ] Dry-run the full submission flow end-to-end (with real keys: watcher → loop → decisions.db → P&L export).

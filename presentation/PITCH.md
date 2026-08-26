@@ -38,7 +38,7 @@ That's reasoning about market conditions, not a hardcoded trigger. It's what sep
 
 ## The P&L story
 
-We ran an **adversarial audit of our own existing bot** (Cryptonaut) before adding a single feature — and found **three real loss drivers**: train↔live simulation mismatch, long-only with no walk-forward validation, and a macro gate that added no edge. We fixed the process, then built a **walk-forward out-of-sample evaluator** and made it the hard gate: **the crypto lane stays only if OOS Sharpe is positive net.** Result: mean annualized Sharpe **5.88** (folds [0.41, −9.43, 5.58, 26.95] — 1/4 negative, honestly noisy, hence secondary lane). That discipline now governs RiskFirst: **we don't claim an edge we haven't validated OOS.** The paper track record is measured, not manufactured.
+We ran an **adversarial audit of our own existing bot** (Cryptonaut) before adding a single feature — and found **three real loss drivers**: train↔live simulation mismatch, long-only with no walk-forward validation, and a macro gate that added no edge. We fixed the process, then built a **walk-forward out-of-sample evaluator** and made it the hard gate: **the crypto lane stays only if OOS Sharpe is positive net.** Result: mean annualized Sharpe **2.35** (seed-42 deterministic; folds [-2.43, 14.57, -2.86, 0.13] — 2/4 negative, honestly noisy, hence secondary lane). That discipline now governs RiskFirst: **we don't claim an edge we haven't validated OOS.** The paper track record is measured, not manufactured.
 
 ## Why we win
 
