@@ -194,3 +194,76 @@ def test_option_chain_empty_on_error(monkeypatch):
             raise RuntimeError("401 unauthorized")
     monkeypatch.setattr(ea, "OptionHistoricalDataClient", BoomClient)
     assert ea.option_chain("SPY") == []
+
+
+# ---------------------------------------------------------------------------
+# vol-targeted sizing (the equities lane's headline sizing claim)
+# ---------------------------------------------------------------------------
+
+def test_realized_vol_sane_range():
+    # noisy ~1% per-bar moves -> annualized vol in a sane band
+    closes = [100.0 * (1.01 ** i) * (1 + 0.003 * (i % 3 - 1)) for i in range(30)]
+    v = ea.realized_vol(closes, window=20)
+    assert v is not None
+    assert 0.05 < v < 0.60
+
+
+def test_realized_vol_flat_is_low():
+    closes = [100.0] * 30
+    v = ea.realized_vol(closes)
+    assert v is not None
+    assert v < 0.01
+
+
+def test_realized_vol_requires_window():
+    assert ea.realized_vol([100.0, 101.0]) is None  # fewer than window+1 bars
+
+
+def test_vol_target_qty_inverse_scaling():
+    # 1% of $100k = $1000 risk; at vol_target/vol = 1.0 -> ~$1000 notional -> qty from price
+    q1 = ea.vol_target_qty(100_000.0, last_price=100.0, vol=0.20)
+    q2 = ea.vol_target_qty(100_000.0, last_price=100.0, vol=0.40)  # double vol -> half notional
+    assert q1 >= q2
+    assert q1 >= 1
+
+
+def test_vol_target_qty_at_least_one_share():
+    # tiny price or low vol should never floor below 1 share
+    assert ea.vol_target_qty(100_000.0, last_price=500.0, vol=0.50) >= 1
+
+
+def test_vol_target_qty_rejects_bad_inputs():
+    assert ea.vol_target_qty(100_000.0, last_price=100.0, vol=None) == 0
+    assert ea.vol_target_qty(100_000.0, last_price=0.0, vol=0.2) == 0
+    assert ea.vol_target_qty(0.0, last_price=100.0, vol=0.2) == 0
+
+
+def test_demo_single_leg_passes_sizing_guard(monkeypatch):
+    # A single-leg demo proposal (SIMPLE class live) must pass _guard_demo
+    legs = [{"symbol": "SPY260828C00600000", "qty": 5, "side": "sell", "premium": 3.00}]
+    assert ea._guard_demo(legs) is None
+
+
+def test_demo_single_leg_still_capped(monkeypatch):
+    legs = [{"symbol": "SPY260828C00600000", "qty": 200, "side": "sell", "premium": 3.00}]
+    r = ea._guard_demo(legs)
+    assert r is not None and r["error"] == "notional_cap"
+
+
+def test_demo_run_reports_vol_sizing(monkeypatch):
+    """demo_run must surface realized vol + vol-targeted qty (the claimed sizing)."""
+    import pandas as pd
+    from bot import equity_agent as ea_mod
+
+    bars = pd.DataFrame({
+        # gentle uptrend + ~0.15% per-bar jitter -> realistic ~15-25% ann vol
+        "close": [100.0 * (1.0004 ** i) + 0.15 * (i % 3 - 1) for i in range(80)],
+    })
+
+    monkeypatch.setattr(ea_mod, "demo_bars", lambda sym, lookback: bars)
+    out = ea_mod.demo_run("SPY", lookback=80)
+    assert out.get("ok") is True
+    assert out["realized_vol_ann"] > 0
+    assert out["sizing"]["method"].startswith("vol-targeted")
+    assert out["sizing"]["qty"] >= 1
+    assert all(l["qty"] == out["sizing"]["qty"] for l in out["legs"])

@@ -51,6 +51,9 @@ MAX_OPTION_NOTIONAL = 500.0        # per leg, paper
 MIN_ORDER_NOTIONAL = 1.0
 CIRCUIT_BREAKER_DD = 0.10         # -10% equity curve halt
 MAX_OPTION_DELTA_EXPOSURE = 0.30  # cap aggregate delta exposure of option book
+RISK_PER_TRADE = 0.01            # 1% of equity risk budget per vol-targeted equity leg
+VOL_TARGET_ANN = 0.20            # 20% annualized vol target (inverse-vol sizing)
+VOL_WINDOW = 20                  # bars in the realized-vol sample
 
 # Friendly intent codes -> PositionIntent enum names.
 _POS_INTENT = {
@@ -139,6 +142,38 @@ def option_chain(underlying: str) -> list[dict]:
     return out
 
 
+def realized_vol(closes, window: int = VOL_WINDOW, periods_per_year: int = 252 * 78) -> float | None:
+    """Annualized realized volatility of `closes` (fraction, e.g. 0.19).
+
+    Uses log returns over the trailing `window` samples, annualized with
+    `periods_per_year` (default 252*78 = 5-min bars). None if too few bars.
+    """
+    import numpy as np
+
+    c = np.asarray(closes, dtype=float)
+    if len(c) < window + 1:
+        return None
+    rets = np.diff(np.log(c))[-window:]
+    if rets.size < 2:
+        return None
+    return float(np.std(rets, ddof=1) * np.sqrt(periods_per_year))
+
+
+def vol_target_qty(equity: float, last_price: float, vol: float | None,
+                   risk_per_trade: float = RISK_PER_TRADE,
+                   vol_target: float = VOL_TARGET_ANN) -> int:
+    """Inverse-vol position sizing: risk budget scaled by target/realized vol.
+
+    notional = (risk_per_trade * equity) * (vol_target / realized_vol);
+    qty = floor(notional / last_price), floored at 1 share (fractional off).
+    Returns 0 if vol/price are unusable (caller should not trade).
+    """
+    if vol is None or vol <= 0.0 or last_price <= 0.0 or equity <= 0.0:
+        return 0
+    notional = (risk_per_trade * equity) * (vol_target / vol)
+    return max(1, int(notional // last_price))
+
+
 def _guard_legs(legs: list[dict], intent: str) -> dict | None:
     """Shared pre-broker guardrails. Returns error dict, or None if OK."""
     if not (2 <= len(legs) <= 4):
@@ -158,6 +193,25 @@ def _guard_legs(legs: list[dict], intent: str) -> dict | None:
                         leg["symbol"], notional, MIN_ORDER_NOTIONAL)
             return {"error": "min_notional", "leg": leg["symbol"]}
     return None
+
+
+def _guard_demo(legs: list[dict]) -> dict | None:
+    """Demo-path guard for SINGLE-leg proposals (SIMPLE order class live).
+
+    A single-leg sell (covered call / cash-secured put) is a SIMPLE order, not
+    MLEG, so _guard_legs' 2..4-leg bound does not apply. We still enforce the
+    same notional floor/cap so the demo's numbers are the real guardrails.
+    Multi-leg demo proposals go through _guard_legs as before.
+    """
+    if len(legs) == 1:
+        leg = legs[0]
+        notional = abs(leg["qty"]) * leg.get("premium", 0.0)
+        if notional > MAX_OPTION_NOTIONAL:
+            return {"error": "notional_cap", "leg": leg["symbol"]}
+        if notional < MIN_ORDER_NOTIONAL:
+            return {"error": "min_notional", "leg": leg["symbol"]}
+        return None
+    return _guard_legs(legs, "sto")
 
 
 def submit_multi_leg(legs: list[dict], intent: str) -> dict:
@@ -214,6 +268,10 @@ def demo_run(symbol: str = "SPY", lookback: int = 390) -> dict:
     sma20 = float(close.rolling(20).mean().iloc[-1])
     sma60 = float(close.rolling(60).mean().iloc[-1])
     ret_1h = float(close.iloc[-1] / close.iloc[-61] - 1) if len(close) > 61 else 0.0
+    vol = realized_vol(close.tolist())
+    vol_qty = vol_target_qty(100_000.0, last, vol)
+    if vol_qty <= 0:
+        return {"ok": False, "error": "no_vol", "detail": f"realized vol unavailable for {symbol}"}
     # naive momentum state machine for the demo narrative
     if last > sma20 > sma60 and ret_1h > 0:
         bias = "bullish"
@@ -227,17 +285,19 @@ def demo_run(symbol: str = "SPY", lookback: int = 390) -> dict:
     if bias == "bearish" and puts:
         # propose a cash-secured put (sell-to-open) below spot
         put = min(puts, key=lambda c: abs(c["strike"] - last * 0.97))
-        legs = [{"symbol": put["symbol"], "qty": 1, "side": "sell", "premium": put["bid"] or put["ask"]}]
+        legs = [{"symbol": put["symbol"], "qty": vol_qty, "side": "sell", "premium": put["bid"] or put["ask"]}]
         intent = "sto"
-        narrative = "bearish momentum -> sell a cash-secured put below spot, collect premium"
+        narrative = ("bearish momentum -> sell a cash-secured put below spot, collect premium; "
+                     f"qty vol-targeted (1% risk, realized vol {vol:.1%})")
     else:
         # credit put spread (or neutral: covered-call-style sell-to-open call)
         calls = [c for c in chain if c["type"] == "call"]
         if bias == "bullish" and calls:
             call = min(calls, key=lambda c: abs(c["strike"] - last * 1.03))
-            legs = [{"symbol": call["symbol"], "qty": 1, "side": "sell", "premium": call["bid"] or call["ask"]}]
+            legs = [{"symbol": call["symbol"], "qty": vol_qty, "side": "sell", "premium": call["bid"] or call["ask"]}]
             intent = "sto"
-            narrative = "bullish signed -> sell a covered call at 3% OTM, harvest premium"
+            narrative = ("bullish signed -> sell a covered call at 3% OTM, harvest premium; "
+                         f"qty vol-targeted (realized vol {vol:.1%})")
         else:
             # neutral: put credit spread (sell far-OTM put, buy closer-OTM put as hedge)
             if not puts:
@@ -247,13 +307,14 @@ def demo_run(symbol: str = "SPY", lookback: int = 390) -> dict:
             if sell_put["symbol"] == buy_put["symbol"]:
                 return {"ok": False, "error": "thin_chain", "symbol": symbol}
             legs = [
-                {"symbol": sell_put["symbol"], "qty": 1, "side": "sell", "premium": sell_put["bid"] or sell_put["ask"]},
-                {"symbol": buy_put["symbol"], "qty": 1, "side": "buy", "premium": buy_put["ask"] or buy_put["bid"]},
+                {"symbol": sell_put["symbol"], "qty": vol_qty, "side": "sell", "premium": sell_put["bid"] or sell_put["ask"]},
+                {"symbol": buy_put["symbol"], "qty": vol_qty, "side": "buy", "premium": buy_put["ask"] or buy_put["bid"]},
             ]
             intent = "sto"
-            narrative = "neutral -> put credit spread: sell 3% OTM put, buy 7% OTM put, defined risk"
+            narrative = ("neutral -> put credit spread: sell 3% OTM put, buy 7% OTM put, defined risk; "
+                         f"leg qty vol-targeted (realized vol {vol:.1%})")
 
-    err = _guard_legs(legs, intent)
+    err = _guard_demo(legs)
     if err:
         return {"ok": False, **err}
     premium = sum(abs(l["qty"]) * l.get("premium", 0.0) for l in legs)
@@ -266,6 +327,14 @@ def demo_run(symbol: str = "SPY", lookback: int = 390) -> dict:
         "last": last,
         "sma20": sma20,
         "sma60": sma60,
+        "realized_vol_ann": round(vol, 6),
+        "sizing": {
+            "method": "vol-targeted (inverse-vol, 1% risk budget)",
+            "risk_per_trade": RISK_PER_TRADE,
+            "vol_target_ann": VOL_TARGET_ANN,
+            "equity_basis": 100_000.0,
+            "qty": vol_qty,
+        },
         "narrative": narrative,
         "intent": intent,
         "legs": legs,
