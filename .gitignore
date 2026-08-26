@@ -4,7 +4,7 @@ cryptobot/.venv/
 cryptobot/state/
 cryptobot/checkpoints/
 __pycache__/
-smoke_mcp_live.py
+# smoke_mcp_live.py now committed (MCP wire-path proof, no real keys needed)
 state/
 options/decisions.db
 *.bak*
