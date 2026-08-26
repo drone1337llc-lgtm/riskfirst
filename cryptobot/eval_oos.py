@@ -11,17 +11,20 @@ config.TARGET_ALLOCATIONS, held over the next bar, mark-to-market. Commission = 
 Usage:
   python eval_oos.py --bars 2000 --folds 4 --timesteps 10000   # quick sample
   python eval_oos.py                                           # full gate (default fetch)
+  python eval_oos.py --seed 42                                 # reproducible run (default)
 Exit code 0 = PASS, 1 = FAIL, 2 = error.
 """
 import argparse
 import json
 import os
+import random
 import sys
 import time
 from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
+import torch
 
 import config
 from bot import data
@@ -78,6 +81,9 @@ def main():
     p.add_argument("--timesteps", type=int, default=300_000)
     p.add_argument("--checkpoint", default=None,
                    help="champion/challenger .zip to evaluate OOS (instead of training fresh)")
+    p.add_argument("--seed", type=int, default=42,
+                   help="RNG seed for per-fold training (fold j uses seed+j). "
+                        "Fixed default makes the verdict reproducible.")
     p.add_argument("--out", default=None,
                    help="verdict output path (default: state/<SYM>/eval_oos.json, or "
                         "eval_oos_challenger.json when --checkpoint is given)")
@@ -128,10 +134,16 @@ def main():
         if args.checkpoint:
             model = challenger_model
         else:
+            fold_seed = args.seed + j
+            random.seed(fold_seed)
+            np.random.seed(fold_seed)
+            torch.manual_seed(fold_seed)
+            if torch.cuda.is_available():
+                torch.cuda.manual_seed_all(fold_seed)
             env = Monitor(GymV21CompatibilityV0(env=build_env(train_p, train_f)))
             model = PPO("MlpPolicy", env, verbose=0, device="cpu",
                         n_steps=2048, batch_size=256, learning_rate=3e-4,
-                        gamma=0.99, ent_coef=0.01)
+                        gamma=0.99, ent_coef=0.01, seed=fold_seed)
             model.learn(total_timesteps=args.timesteps)
 
         oos = simulate_oos(test_p, test_f, model)
@@ -161,6 +173,8 @@ def main():
         "timesteps": args.timesteps,
         "bars_used": n,
         "folds_evaluated": len(results),
+        "seed": args.seed,
+        "fold_seeds": [args.seed + j for j in range(len(results))],
         "mean_oos_ann_sharpe": round(mean_sharpe, 4),
         "negative_sharpe_folds": neg,
         "folds": results,
