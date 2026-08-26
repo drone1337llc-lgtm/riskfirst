@@ -23,7 +23,7 @@
 
 **Shipped:** A **walk-forward out-of-sample evaluator** — train on [t−k, t−0.25k], evaluate on [t−0.25k, t], roll forward. Reports OOS Sharpe and drawdown **net of honest costs**. This became the **hard gate**: any strategy change that doesn't improve OOS doesn't ship.
 
-**Result:** The core showed **positive OOS Sharpe** — mean annualized **5.88**, folds **[0.41, −9.43, 5.58, 26.95]** (1/4 negative — high variance, honestly framed). First time we could say "this has a measured edge," not "this should have an edge."
+**Result:** The core showed **positive OOS Sharpe** — mean annualized **2.35**, folds **[+0.41, −9.43, +5.58, +26.95] unseeded → then made reproducible with a fixed seed (42): [−2.43, +14.57, −2.86, +0.13]** (2/4 negative — high variance, honestly framed). The canonical verdict now pins the seed so any judge re-runs the same numbers. First time we could say "this has a measured edge," not "this should have an edge."
 
 **Lesson:** Tuning without an OOS gate is tuning to noise. Every "improvement" is ~50/50 to be a no-op — unless an OOS evaluator vetoes it first.
 

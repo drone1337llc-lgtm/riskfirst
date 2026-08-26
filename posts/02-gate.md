@@ -8,14 +8,14 @@ Here's what the gate did to my crypto lane:
 
 | Fold | Annualized Sharpe | Return | MaxDD |
 |------|-----------------|--------|-------|
-| 1 | +0.41 | +0.07% | 1.91% |
-| 2 | **−9.43** | −2.34% | 3.84% |
-| 3 | +5.58 | +1.36% | 2.70% |
-| 4 | +26.95 | +6.90% | 1.58% |
-| **Mean** | **+5.88** | **+1.50%** | **2.51%** |
+| 1 | **−2.43** | −0.35% | 1.44% |
+| 2 | +14.57 | +3.56% | 2.01% |
+| 3 | **−2.86** | −0.81% | 3.98% |
+| 4 | +0.13 | +0.04% | 5.16% |
+| **Mean** | **+2.35** | **+0.61%** | **3.15%** |
 
-Mean Sharpe **5.88** looks great — but **1 of 4 folds is deeply negative**. That's not a bot, that's a coin flip with good advertising. Verdict: crypto lane **demoted to secondary**. High variance, not trustworthy as the primary entry.
+Mean Sharpe **2.35** with **2 of 4 folds negative** — under a fixed seed (42), so any judge can reproduce it. That's high variance with a thin edge, not a trustable primary. Verdict: crypto lane **demoted to secondary**. High variance, not trustworthy as the primary entry.
 
-The honest lesson: a single number (even a good one) is a trap. The distribution is the truth. RiskFirst's primary lane is options+equities with vol-targeting and hard guardrails — because a gate that can fail you is the only gate worth having.
+The honest lesson: a single number (even a good one) is a trap — which is why the canonical verdict is now seeded and reproducible. The distribution is the truth. RiskFirst's primary lane is options+equities with vol-targeting and hard guardrails — because a gate that can fail you is the only gate worth having.
 
 Walk-forward harness: `cryptobot/eval_oos.py`, 300k timesteps / 25,766 bars, ETH/USD. Full fold record: `cryptobot/state/ETHUSD/eval_oos_full.json`.

@@ -11,6 +11,6 @@ How it works:
 
 Why I like it: most agents treat memory as a prompt string. This is memory as a *state machine* — the book remembers it was hurt and refuses to keep trading through the drawdown.
 
-Same pattern is what kept the crypto secondary lane alive: the OOS gate showed fold 2 at −9.43 Sharpe — the same lane that would trip the breaker hard in live trading, which is exactly why it's demoted.
+Same pattern is what kept the crypto secondary lane alive: the OOS gate (seeded, reproducible) showed 2 of 4 folds negative (−2.43, −2.86 Sharpe) — the same lane that would trip the breaker hard in live trading, which is exactly why it's demoted.
 
 Also: the daily-loss circuit (−3% intraday) and the drawdown pause (−8%, blocks new entries) are the earlier rungs of the same ladder. The −10% breaker is the last-resort flatten.
