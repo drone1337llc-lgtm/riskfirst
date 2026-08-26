@@ -14,8 +14,8 @@
 
 ## 2. Media deliverables
 - [x] **Cover image** — `cover.png` (1280×720, rendered from `cover-src.html`, RiskFirst branding, honest framing incl. 5.88 Sharpe + 1/4 negative folds)
-- [x] **Video presentation** — `demo-reel.mp4` (30 s, 10 slides × 3 s, rendered from the current 9-slide deck + cover; rebuild with `bin/rebuild_reel.sh` after any deck change). *Live-demo version to be re-recorded when real keys land (placeholder until then).*
-- [x] **Slide deck** — `slides/index.html` (9 slides, RiskFirst-branded, 89-test + OOS-gate honest numbers)
+- [x] **Video presentation** — `demo-reel.mp4` (30 s, 10 slides × 3 s, rendered from the current 10-slide deck; rebuild with `bin/rebuild_reel.sh` after any deck change). *Live-demo version to be re-recorded when real keys land (placeholder until then).*
+- [x] **Slide deck** — `slides/index.html` (10 slides, RiskFirst-branded, 89-test + OOS-gate honest numbers)
 
 ## 3. Public repo (PUBLISH — do NOT include keys)
 - [ ] Push repo to **public GitHub** — blocked on Surge: gh CLI token on .67 INVALID (drone1337llc-lgtm); SSH `git@github.com` authenticates fine as drone1337llc-lgtm; repo CREATION needs an API token or a repo pre-created. (Backup bundle + runtime state stored on teamamd `backups\alpaca-kit\`.)
