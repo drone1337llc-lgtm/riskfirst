@@ -1,6 +1,6 @@
 # Post 1 — Announce (Aug 27)
 
-** I adversarial-reviewed my own trading bot and found it was built on a wrong assumption.**
+**I adversarial-reviewed my own trading bot and found it was built on a wrong assumption.**
 
 Entering the Alpaca AI Trading Agents hackathon, I thought I had a finished crypto bot. Then I ran an adversarial council review on myself and it fell apart — the requirements had changed under me. The hackathon's real tracks are **options + equities + MCP/CLI agents**, not crypto PPO.
 

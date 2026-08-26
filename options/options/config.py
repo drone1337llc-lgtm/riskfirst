@@ -31,6 +31,7 @@ STATE_DIR: Path = Path(__file__).resolve().parents[2] / "state" / "paper"
 MAX_PCT_PER_TRADE: float = 0.02          # max 2% equity per trade
 DAILY_LOSS_CIRCUIT: float = 0.03         # -3% intraday => flatten & halt new
 DRAWDOWN_PAUSE: float = 0.08             # -8% from equity high => pause
+CIRCUIT_BREAKER: float = 0.10            # -10% trailing from equity high => flatten & halt
 NET_DELTA_CAP: float = 0.30              # net portfolio delta cap (±0.30)
 
 # Contract screening filters.
@@ -56,6 +57,7 @@ class RiskLimits:
     max_position_pct: float = MAX_PCT_PER_TRADE
     daily_loss_circuit: float = DAILY_LOSS_CIRCUIT
     drawdown_pause: float = DRAWDOWN_PAUSE
+    circuit_breaker: float = CIRCUIT_BREAKER
     net_delta_cap: float = NET_DELTA_CAP
     min_open_interest: int = MIN_OPEN_INTEREST
     max_spread: float = MAX_BID_ASK_SPREAD

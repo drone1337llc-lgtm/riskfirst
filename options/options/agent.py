@@ -130,6 +130,18 @@ class RiskArbiter:
             return False
         return (current_eq - day_start_eq) / day_start_eq <= -self.limits.daily_loss_circuit
 
+    def circuit_breaker_tripped(self, equity: float) -> bool:
+        """True if equity is <= -10% below its running high-water mark.
+
+        This is the trailing circuit-breaker: unlike the drawdown *pause*
+        (which only blocks new entries), a trip forces the book flat via the
+        agent's decision loop.
+        """
+        self.update_high(equity)
+        if self.equity_high <= 0:
+            return False
+        return equity <= self.equity_high * (1 - self.limits.circuit_breaker)
+
 
 # --------------------------------------------------------------------------- #
 # Agent
@@ -181,11 +193,18 @@ class Agent:
         equity = account["equity"]
         day_start = day_start_equity or equity
 
-        # Circuit breaker: intraday -3% => flatten, no new trades.
+        # Daily-loss circuit: intraday -3% => flatten, no new trades.
         if self.arbiter.daily_loss_halted(day_start, equity):
             self.client.flatten()
             self.db.log_account(equity, cash, 0.0)
             return [{"action": "FLATTEN", "reason": "daily loss circuit (-3%)"}]
+
+        # Trailing circuit breaker: -10% from equity high => flatten, no new trades.
+        if self.arbiter.circuit_breaker_tripped(equity):
+            self.client.flatten()
+            self.db.log_account(equity, cash, 0.0)
+            dd = (1 - equity / self.arbiter.equity_high) if self.arbiter.equity_high else 0.0
+            return [{"action": "FLATTEN", "reason": f"circuit breaker (-{dd:.1%} from high)"}]
 
         decisions: list[dict] = []
         for underlying in config.SCAN_UNDERLYINGS:

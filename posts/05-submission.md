@@ -1,14 +1,14 @@
 # Post 5 — Submission (Sep 3)
 
-** Heres what we shipped, and where its honestly weak.**
+**Here's what we shipped, and where it's honestly weak.**
 
 **RiskFirst** — an options & equities agent on Alpaca MCP with a walk-forward OOS gate.
 
 What shipped:
-- Options/equities lane: vol-targeted equity sizing, options wheel overlay, guardrails (≤4 legs, /leg,  min, pre-broker intent validation)
+- Options/equities lane: vol-targeted equity sizing, options wheel overlay, guardrails (≤4 legs, $500/leg, $1 min, pre-broker intent validation)
 - MCP route: stdio/http/sse via uvx alpaca-mcp-server
 - Crypto secondary lane with a **spec-compliant OOS verdict**: mean Sharpe 5.88, but 1/4 folds negative — demoted, honestly
-- Risk rails: −10% DD circuit-breaker, flat-on-trip
+- Risk rails: −10% trailing DD circuit-breaker, −8% drawdown pause, −3% daily-loss flatten
 - Full repo, this deck, and a paper account ID (below)
 
 Where it's honestly weak:

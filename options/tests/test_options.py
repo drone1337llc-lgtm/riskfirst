@@ -108,6 +108,19 @@ class TestRiskArbiter(unittest.TestCase):
         self.assertFalse(accepted)
         self.assertIn("drawdown", reason)
 
+    def test_circuit_breaker_trips_at_10pct(self):
+        arb = RiskArbiter(self.limits)
+        arb.update_high(100_000.0)
+        self.assertFalse(arb.circuit_breaker_tripped(91_000))   # -9%: not yet
+        self.assertTrue(arb.circuit_breaker_tripped(89_900))     # -10.1%: trip
+
+    def test_circuit_breaker_is_trailing(self):
+        arb = RiskArbiter(self.limits)
+        arb.update_high(100_000.0)
+        self.assertTrue(arb.circuit_breaker_tripped(89_900))     # trip at -10.1%
+        # New high-water mark resets the reference: no longer tripped.
+        self.assertFalse(arb.circuit_breaker_tripped(105_000))
+
     def test_csp_requires_cash_cover(self):
         arb = RiskArbiter(self.limits)
         prop = self._prop(notional=55_000, strategy="cash_secured_put")
