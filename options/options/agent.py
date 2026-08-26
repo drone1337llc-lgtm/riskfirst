@@ -96,28 +96,56 @@ class RiskArbiter:
     def update_high(self, equity: float) -> None:
         self.equity_high = max(self.equity_high, equity)
 
-    def check(self, proposal, account: dict, cash: float) -> tuple[bool, str]:
+    def check(self, proposal, account: dict, cash: float,
+              net_delta: float = 0.0) -> tuple[bool, str]:
         """Return (accepted, reason). Encapsulates all hard risk gates.
 
         For options, the capital at risk in a single trade is the *premium*
         (qty x price) — not the strike notional. The notional for covered
         calls / cash-secured puts is just collateral, not loss exposure.
+
+        net_delta: current aggregate option-book delta (sum of position
+        deltas). When nonzero, the book must stay within ±net_delta_cap —
+        new entries are rejected while the book is already at the cap.
         """
         eq = account["equity"]
         premium_at_risk = proposal.qty * proposal.price
 
-        # 1. Position-size gate: premium at risk <= max% of equity.
+        # 0. Net-delta book gate: no new option exposure while the aggregate
+        #    option-book delta sits at/over the cap (default 0.30).
+        if abs(net_delta) >= self.limits.net_delta_cap:
+            return False, (
+                f"net delta {net_delta:.2f} at {self.limits.net_delta_cap:.2f} cap "
+                f"— no new option exposure"
+            )
+
+        # 1. Per-leg premium floor: no dust orders ($1 minimum).
+        if premium_at_risk < self.limits.min_order_notional:
+            return False, (
+                f"premium at risk {premium_at_risk:.2f} below "
+                f"${self.limits.min_order_notional:.2f} minimum order floor"
+            )
+
+        # 2. Per-leg premium cap ($500/leg — same semantics as the equity
+        #    lane's _guard_legs: premium = qty x price, not strike notional).
+        if premium_at_risk > self.limits.max_option_notional:
+            return False, (
+                f"premium at risk {premium_at_risk:.2f} exceeds "
+                f"${self.limits.max_option_notional:.0f} per-leg cap"
+            )
+
+        # 3. Position-size gate: premium at risk <= max% of equity.
         if premium_at_risk > eq * self.limits.max_position_pct:
             return False, (
                 f"premium at risk {premium_at_risk:.2f} exceeds "
                 f"{self.limits.max_position_pct:.0%} equity cap"
             )
 
-        # 2. Cash-secured puts must be fully cash-covered (collateral).
+        # 4. Cash-secured puts must be fully cash-covered (collateral).
         if proposal.strategy == "cash_secured_put" and proposal.notional > cash:
             return False, "CSP notional exceeds available cash"
 
-        # 3. Drawdown pause gate (-8% from equity high).
+        # 5. Drawdown pause gate (-8% from equity high).
         self.update_high(eq)
         if self.equity_high > 0 and eq < self.equity_high * (1 - self.limits.drawdown_pause):
             return False, f"drawdown pause active ({(1 - eq / self.equity_high):.1%})"
@@ -168,10 +196,15 @@ class Agent:
 
     def net_delta(self) -> float:
         """Sum of option deltas across positions (approx)."""
-        return sum(p.get("delta", 0.0) for p in self.client.get_positions())
+        return sum(
+            p.get("delta") or 0.0
+            for p in self.client.get_positions()
+            if p.get("asset_class") in ("us_option", "option")
+        )
 
     def _gate_and_submit(self, proposal, account: dict, cash: float) -> bool:
-        accepted, reason = self.arbiter.check(proposal, account, cash)
+        accepted, reason = self.arbiter.check(
+            proposal, account, cash, net_delta=self.net_delta())
         if self.referee is not None:
             approve, rreason = self.referee.review(proposal, account, cash)
             if not approve:

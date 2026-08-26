@@ -65,7 +65,7 @@ python -m cryptobot.bot.run         # 24/7 paper loop
 ## Risk rails (both lanes)
 
 - **Paper-only enforced at import** — live endpoints unreachable.
-- Notional caps ($500/leg options, aggregate delta ≤ 0.15) + min order floors.
+- Notional caps ($500/leg premium cap, aggregate net delta <= 0.30) + min order floors ($1).
 - **Circuit breaker:** realized drawdown ≤ −10% → flat until regime confirmation.
 - LLM unreachable → conservative fallback (max allocation 0.25).
 - Champion/challenger walk-forward promote: a challenger only replaces the live

@@ -50,6 +50,11 @@ SCAN_UNDERLYINGS: tuple[str, ...] = ("SPY", "QQQ")
 MAX_PORTFOLIO_WEIGHT_OPTIONS: float = 0.30  # options not >30% of equity
 CASH_RESERVE_PCT: float = 0.10              # keep 10% cash buffer minimum
 
+# Per-leg order guardrails (same semantics as the equity lane's _guard_legs:
+# premium = qty x price, not strike notional).
+MIN_ORDER_NOTIONAL: float = 1.0             # $1 minimum premium — no dust orders
+MAX_OPTION_NOTIONAL: float = 500.0         # $500 premium cap per leg — no yoloing
+
 
 @dataclass(frozen=True)
 class RiskLimits:
@@ -66,6 +71,8 @@ class RiskLimits:
     max_dte: int = MAX_DTE
     target_dte: int = TARGET_DTE
     delta_short: float = DELTA_SHORT
+    min_order_notional: float = MIN_ORDER_NOTIONAL
+    max_option_notional: float = MAX_OPTION_NOTIONAL
 
 
 def options_level() -> int:

@@ -50,7 +50,7 @@ EQUITY_UNIVERSE = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA"]
 MAX_OPTION_NOTIONAL = 500.0        # per leg, paper
 MIN_ORDER_NOTIONAL = 1.0
 CIRCUIT_BREAKER_DD = 0.10         # -10% equity curve halt
-MAX_OPTION_DELTA_EXPOSURE = 0.15  # cap aggregate delta exposure of option book
+MAX_OPTION_DELTA_EXPOSURE = 0.30  # cap aggregate delta exposure of option book
 
 # Friendly intent codes -> PositionIntent enum names.
 _POS_INTENT = {

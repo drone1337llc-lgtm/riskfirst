@@ -135,6 +135,47 @@ class TestRiskArbiter(unittest.TestCase):
         accepted, _ = arb.check(prop, {"equity": 100_000}, cash=10_000_000)
         self.assertFalse(accepted)
 
+    def test_min_premium_floor_blocks_dust(self):
+        arb = RiskArbiter(self.limits)
+        # premium = 1 x 0.80 = $0.80 < $1 minimum order floor
+        prop = strat.OrderProposal("x", "S", "U", "buy_to_open", 1, 0.80,
+                                   0.1, 21, 0.5, 100.0)
+        accepted, reason = arb.check(prop, {"equity": 100_000}, cash=80_000)
+        self.assertFalse(accepted)
+        self.assertIn("floor", reason)
+
+    def test_per_leg_premium_cap_blocks_over_500(self):
+        arb = RiskArbiter(self.limits)
+        # premium = 2 x 300 = $600 > $500 per-leg cap (still < 2% equity)
+        prop = strat.OrderProposal("x", "S", "U", "buy_to_open", 2, 300.0,
+                                   0.1, 21, 0.5, 100_000.0)
+        accepted, reason = arb.check(prop, {"equity": 100_000}, cash=80_000)
+        self.assertFalse(accepted)
+        self.assertIn("per-leg cap", reason)
+
+    def test_premium_floor_boundary_accepted(self):
+        arb = RiskArbiter(self.limits)
+        # premium exactly $1.00 -> at floor, accepted
+        prop = self._prop()   # qty 1 x price 1.0 = $1.00
+        accepted, _ = arb.check(prop, {"equity": 100_000}, cash=80_000)
+        self.assertTrue(accepted)
+
+    def test_net_delta_cap_blocks_at_cap(self):
+        arb = RiskArbiter(self.limits)
+        prop = self._prop()
+        # Book already at the ±0.30 net-delta cap -> no new option exposure.
+        accepted, reason = arb.check(prop, {"equity": 100_000}, cash=80_000,
+                                     net_delta=0.30)
+        self.assertFalse(accepted)
+        self.assertIn("net delta", reason)
+
+    def test_net_delta_under_cap_allows(self):
+        arb = RiskArbiter(self.limits)
+        prop = self._prop()
+        accepted, _ = arb.check(prop, {"equity": 100_000}, cash=80_000,
+                                net_delta=0.15)
+        self.assertTrue(accepted)
+
     def test_normal_proposal_accepted(self):
         arb = RiskArbiter(self.limits)
         accepted, reason = arb.check(self._prop(notional=1500),

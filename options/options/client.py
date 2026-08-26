@@ -170,6 +170,15 @@ class MockClient(BaseClient):
             "notional": proposal.notional,
         }
         self._orders.append(rec)
+        # Track the open option position so net_delta() reflects the book.
+        # qty sign: sell_to_open reduces delta (short call delta < 0),
+        # buy_to_open adds it. Sign follows the proposal delta as quoted.
+        self._positions.append({
+            "symbol": proposal.symbol,
+            "qty": proposal.qty,
+            "asset_class": "us_option",
+            "delta": proposal.delta * proposal.qty,
+        })
         return {"status": "accepted", "order": rec}
 
     @property
@@ -475,10 +484,15 @@ class McpClient(BaseClient):
         if isinstance(raw, list):
             for p in raw:
                 if isinstance(p, dict):
+                    greeks = _pick(p, "greeks", "Greeks") or {}
+                    delta = None
+                    if isinstance(greeks, dict):
+                        delta = _pick(greeks, "delta", "Delta")
                     out.append({
                         "symbol": _pick(p, "symbol", "Symbol") or "",
                         "qty": float(_pick(p, "qty", "qty") or _pick(p, "quantity", "Quantity") or 0),
                         "asset_class": _pick(p, "asset_class", "asset_class") or "us_equity",
+                        "delta": float(delta) if delta is not None else None,
                     })
         return out
 
