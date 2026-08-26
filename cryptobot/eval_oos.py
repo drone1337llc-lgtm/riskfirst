@@ -76,11 +76,22 @@ def main():
                    help="number of bars to fetch; 0 = use config.LOOKBACK_BARS")
     p.add_argument("--folds", type=int, default=4)
     p.add_argument("--timesteps", type=int, default=300_000)
-    p.add_argument("--out", default=os.path.join(config.STATE_DIR, "eval_oos.json"))
+    p.add_argument("--checkpoint", default=None,
+                   help="champion/challenger .zip to evaluate OOS (instead of training fresh)")
+    p.add_argument("--out", default=None,
+                   help="verdict output path (default: state/<SYM>/eval_oos.json, or "
+                        "eval_oos_challenger.json when --checkpoint is given)")
     p.add_argument("--verbose", action="store_true")
     args = p.parse_args()
 
     prices, feats = data.load_dataset()
+    if args.checkpoint:
+        from stable_baselines3 import PPO as _PPO
+        challenger_model = _PPO.load(args.checkpoint, device="cpu")
+        print(f"gating checkpoint: {args.checkpoint}")
+    out_path = args.out or (
+        os.path.join(config.STATE_DIR, "eval_oos_challenger.json")
+        if args.checkpoint else os.path.join(config.STATE_DIR, "eval_oos.json"))
     if args.bars and args.bars > 0:
         prices = prices.iloc[-args.bars:]
         feats = feats.iloc[-args.bars:]
@@ -114,11 +125,14 @@ def main():
         test_p = prices.iloc[eval_start:eval_end]
         test_f = feats.iloc[eval_start:eval_end]
 
-        env = Monitor(GymV21CompatibilityV0(env=build_env(train_p, train_f)))
-        model = PPO("MlpPolicy", env, verbose=0, device="cpu",
-                    n_steps=2048, batch_size=256, learning_rate=3e-4,
-                    gamma=0.99, ent_coef=0.01)
-        model.learn(total_timesteps=args.timesteps)
+        if args.checkpoint:
+            model = challenger_model
+        else:
+            env = Monitor(GymV21CompatibilityV0(env=build_env(train_p, train_f)))
+            model = PPO("MlpPolicy", env, verbose=0, device="cpu",
+                        n_steps=2048, batch_size=256, learning_rate=3e-4,
+                        gamma=0.99, ent_coef=0.01)
+            model.learn(total_timesteps=args.timesteps)
 
         oos = simulate_oos(test_p, test_f, model)
         oos["fold"] = j + 1
@@ -151,11 +165,13 @@ def main():
         "negative_sharpe_folds": neg,
         "folds": results,
         "verdict": "PASS" if mean_sharpe > 0 else "FAIL",
+        "gated_checkpoint": os.path.basename(args.checkpoint) if args.checkpoint else None,
         "ts": datetime.now(timezone.utc).isoformat(),
     }
-    os.makedirs(os.path.dirname(args.out), exist_ok=True)
-    with open(args.out, "w") as f:
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    with open(out_path, "w") as f:
         json.dump(summary, f, indent=2, default=str)
+    print(f"wrote verdict -> {out_path}")
     print(json.dumps(summary, indent=2))
     print("VERDICT:", summary["verdict"])
     sys.exit(0 if mean_sharpe > 0 else 1)

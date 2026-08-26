@@ -7,16 +7,18 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
 
 import config
-from bot import data
+from bot import data, promote
 from bot.env import build_env
 
 
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--timesteps", type=int, default=300_000)
-    p.add_argument("--out", default=config.CHECKPOINT_PATH)
+    p.add_argument("--out", default=config.CHALLENGER_PATH,
+                   help="output path (default challenger; champion path is refused)")
     p.add_argument("--device", default="auto")
     args = p.parse_args()
+    promote.check_not_champion(args.out)
 
     prices, feats = data.load_dataset()
     print(f"dataset: {len(feats)} bars, {feats.shape[1]} features")

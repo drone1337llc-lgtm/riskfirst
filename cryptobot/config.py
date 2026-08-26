@@ -24,6 +24,7 @@ MACRO_INTERVAL_S = 60      # query LLM regime hourly
 MIN_ORDER_NOTIONAL = 10.0       # skip dust rebalances
 _SYM = SYMBOL.replace("/", "")
 CHECKPOINT_PATH = os.path.join(os.path.dirname(__file__), "checkpoints", f"ppo_{_SYM}.zip")
+CHALLENGER_PATH = os.path.join(os.path.dirname(__file__), "checkpoints", f"ppo_{_SYM}_challenger.zip")
 STATE_DIR = os.path.join(os.path.dirname(__file__), "state", _SYM)
 os.makedirs(STATE_DIR, exist_ok=True)
 
