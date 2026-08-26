@@ -10,6 +10,7 @@ from stable_baselines3 import PPO
 
 import config
 from bot import data, macro
+from bot import gate
 
 logging.basicConfig(
     level=logging.INFO,
@@ -33,6 +34,17 @@ def write_status(payload: dict):
 
 
 def main():
+    # Hard gate (council 2026-08-24 priority #2): the crypto lane runs ONLY if
+    # the walk-forward OOS Sharpe is positive net. Fail closed — a missing,
+    # stale, or negative verdict refuses startup. Nothing about the lane may
+    # trade before this passes.
+    oos = gate.check_oos_gate()
+    if not oos["ok"]:
+        log.error("OOS GATE FAILED CLOSED: %s (file=%s) — crypto lane refused",
+                  oos["reason"], oos["file"])
+        raise SystemExit(3)
+    log.info("OOS gate PASS (mean Sharpe %s, %s)", oos["mean_sharpe"], oos["file"])
+
     from bot import execute  # imported here so data/train work without keys
 
     model = PPO.load(config.CHECKPOINT_PATH, device="cpu")
