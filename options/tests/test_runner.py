@@ -102,7 +102,22 @@ def test_main_refuses_real_trading(monkeypatch):
 
 
 # --------------------------------------------------------------------------- #
-# Full mock cycle end-to-end (writes state/paper/status.json, gitignored)
+# State isolation — mock NEVER writes the live paper audit trail
+# --------------------------------------------------------------------------- #
+def test_state_dir_isolation():
+    """--mock must point at state/mock/, the paper lane at state/paper/."""
+    mock_dir = runner.set_state_dir(True)
+    assert runner.DB_PATH == mock_dir / "decisions.db"
+    assert runner.STATUS_PATH == mock_dir / "status.json"
+    assert "mock" in str(mock_dir) and "paper" not in str(mock_dir)
+    paper_dir = runner.set_state_dir(False)
+    assert runner.DB_PATH == paper_dir / "decisions.db"
+    assert "paper" in str(paper_dir)
+
+
+# --------------------------------------------------------------------------- #
+# Full mock cycle end-to-end (writes state/mock/, gitignored — never the live
+# paper audit trail in state/paper/, which is the judge-visible P&L)
 # --------------------------------------------------------------------------- #
 def test_mock_cycle_once(monkeypatch):
     monkeypatch.delenv("ALPACA_API_KEY", raising=False)
@@ -112,7 +127,10 @@ def test_mock_cycle_once(monkeypatch):
     assert runner.main(["--mock", "--once", "--force"]) == 0
     status = runner.STATUS_PATH
     assert status.exists()
+    assert "mock" in str(status)
     import json
     payload = json.loads(status.read_text())
     assert payload["mode"] == "MOCK"
     assert payload["account"]["equity"] == 100_000.0
+    # the live paper trail must stay untouched by mock runs
+    assert not (runner.ROOT / "state" / "paper" / "status.json").exists()

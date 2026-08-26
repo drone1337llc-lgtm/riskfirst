@@ -173,6 +173,15 @@ session recovery, cron-friendly):
 > server subprocess is hard-forced to `ALPACA_PAPER=true` (client.py) —
 > the hackathon is paper-only, P&L judged on paper fills.
 
+> **Mock lane & state isolation (2026-08-25):** key-free demo evidence NEVER
+> touches the live audit trail. `--mock` runs write `state/mock/`
+> (decisions.db, status.json, paper_loop.log); the paper lane owns
+> `state/paper/` exclusively — that trail is the judge-visible P&L
+> (bin/export_pnl.py --mode PAPER). `bin/mock_lane_watch.sh` (cron,
+> RTH-gated, flock-serialized) keeps the mock demo producing fresh evidence
+> until keys land; then `start_paper_loop.sh` takes over the paper lane.
+
+
 ---
 
 ## Verifying the build

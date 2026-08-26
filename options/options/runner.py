@@ -15,14 +15,18 @@ Safety:
   * Daily-loss circuit (-3%) and drawdown pause (-8%) are enforced by the
     risk arbiter every cycle; day-start equity and equity-high are
     recovered from the SQLite audit trail so they survive cron restarts.
+  * STATE ISOLATION: --mock writes state/mock/ (demo evidence), never the
+    live audit trail in state/paper/ — that trail is the judge-visible
+    paper P&L once keys land.
 
 Usage (from repo root):
     ALPACA_IS_LIVE=1 cryptobot/.venv/bin/python -m options.runner --once
     ALPACA_IS_LIVE=1 cryptobot/.venv/bin/python -m options.runner           # daemon
     cryptobot/.venv/bin/python -m options.runner --mock --once --force       # dry run
+        -> state/mock/ (decisions.db, status.json, paper_loop.log)
 
-State: state/paper/decisions.db (audit), status.json (last summary),
-paper_loop.log (runner log).
+State: state/paper/decisions.db (audit) | state/mock/ (mock dry-run),
+status.json (last summary), paper_loop.log (runner log).
 """
 from __future__ import annotations
 
@@ -62,6 +66,26 @@ from options.client import MCPError  # noqa: E402
 from options.llm_referee import LLMReferee  # noqa: E402
 
 log = logging.getLogger("options.runner")
+
+
+# ---------------------------------------------------------------------------
+# State isolation
+# ---------------------------------------------------------------------------
+def set_state_dir(mock: bool) -> Path:
+    """Point the module state paths at the mock or the paper lane.
+
+    Mock dry-runs MUST NOT write the live audit trail
+    (state/paper/decisions.db) — that file is the judge-visible paper P&L
+    once keys land, and bin/export_pnl.py --mode PAPER reports on it.
+    Mock evidence lives in state/mock/ so it can never pollute the
+    submission track record.
+    """
+    global STATE_DIR, DB_PATH, STATUS_PATH, LOG_PATH
+    STATE_DIR = ROOT / "state" / ("mock" if mock else "paper")
+    DB_PATH = STATE_DIR / "decisions.db"
+    STATUS_PATH = STATE_DIR / "status.json"
+    LOG_PATH = STATE_DIR / "paper_loop.log"
+    return STATE_DIR
 
 
 # ---------------------------------------------------------------------------
@@ -173,6 +197,7 @@ def main(argv: list[str] | None = None) -> int:
                     help="MockClient dry-run (key-free, no orders)")
     args = ap.parse_args(argv)
 
+    set_state_dir(args.mock)
     setup_logging()
 
     if not args.mock:
