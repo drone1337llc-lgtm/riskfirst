@@ -28,6 +28,12 @@ tar -czf "$RUNTIME" \
   state/paper/pnl_stats.json \
   state/paper/paper_loop.log \
   state/paper/paper_loop_watch.log \
+  state/mock/decisions.db \
+  state/mock/status.json \
+  state/mock/pnl_report.md \
+  state/mock/pnl_stats.json \
+  state/mock/paper_loop.log \
+  state/mock/paper_loop_watch.log \
   keys_landed.log \
   2>/dev/null || true
 tar -tzf "$RUNTIME" >/dev/null
