@@ -6,6 +6,9 @@
 #   2. Surge creates drone1337llc-lgtm/riskfirst on the web (SSH auth already works)
 #      -> SSH path: attach origin + push, no token needed
 # Mirrors alpaca_key_watch.sh: one-shot flag, everything logged.
+# FIX 2026-08-26: flag now set ONLY on verified push success (was: touched
+# before push -> transient 401/create-race left a spuriously-set flag and the
+# watcher went permanently silent; repo never shipped).
 FLAG=/home/surge/cryptobot-train/.repo_pushed_fired
 LOG=/home/surge/cryptobot-train/repo_push.log
 REPO=drone1337llc-lgtm/riskfirst
@@ -32,15 +35,15 @@ if [ "$TOKEN_OK" -eq 0 ] && [ "$REPO_EXISTS" -eq 0 ]; then
   exit 0
 fi
 
-touch "$FLAG"
+PUSH_OK=0
 {
   echo "=== REPO PUSH $NOW (token_ok=$TOKEN_OK repo_exists=$REPO_EXISTS) ==="
   cd /home/surge/cryptobot-train || exit 1
   if [ "$REPO_EXISTS" -eq 0 ]; then
-    gh repo create "$REPO" --public --source=. --remote origin --push --description "RiskFirst: An Options and Equities Agent on Alpaca MCP with a Walk-Forward OOS Gate" 2>&1 || echo "CREATE_FAILED"
+    gh repo create "$REPO" --public --source=. --remote origin --push --description "RiskFirst: An Options and Equities Agent on Alpaca MCP with a Walk-Forward OOS Gate" && PUSH_OK=1 || echo "CREATE_FAILED (will retry)"
   else
     git remote add origin "$SSH_URL" 2>/dev/null || git remote set-url origin "$SSH_URL"
-    git push -u origin HEAD 2>&1
+    if git push -u origin HEAD; then PUSH_OK=1; else echo "PUSH_FAILED (will retry)"; fi
   fi
   echo "--- remote ---"
   git remote -v
@@ -50,5 +53,10 @@ touch "$FLAG"
   else
     echo "no token; repo exists via SSH (created on web)"
   fi
-  echo "=== WATCH DONE $NOW ==="
+  if [ "$PUSH_OK" -eq 1 ]; then
+    touch "$FLAG"
+    echo "=== WATCH DONE (flag set) $NOW ==="
+  else
+    echo "=== WATCH RETRY PENDING (no flag) $NOW ==="
+  fi
 } >> "$LOG" 2>&1
