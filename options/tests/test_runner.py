@@ -132,5 +132,8 @@ def test_mock_cycle_once(monkeypatch):
     payload = json.loads(status.read_text())
     assert payload["mode"] == "MOCK"
     assert payload["account"]["equity"] == 100_000.0
+    assert payload["account"]["account_id"] == "MOCK-ACCT"
+    # mock cycles must never write the real paper-account file
+    assert not (runner.ROOT / "state" / "paper" / "paper_account_id.txt").exists()
     # the live paper trail must stay untouched by mock runs
     assert not (runner.ROOT / "state" / "paper" / "status.json").exists()

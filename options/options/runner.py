@@ -179,9 +179,19 @@ def setup_logging() -> None:
 def _run_once(agent: agent_mod.Agent, mock: bool) -> dict:
     summary = run_cycle(agent)
     acct = agent.client.get_account()
-    summary["account"] = {"equity": acct.get("equity"), "cash": acct.get("cash")}
+    summary["account"] = {
+        "equity": acct.get("equity"),
+        "cash": acct.get("cash"),
+        "account_id": acct.get("account_id"),
+    }
     summary["mode"] = "MOCK" if mock else "MCP-PAPER"
     write_status(summary)
+    # Persist the paper account id for the submission (SUBMISSION.md section).
+    # Real (MCP-PAPER) cycles only -- mock cycles must never clobber it.
+    if not mock and acct.get("account_id"):
+        (STATE_DIR / "paper_account_id.txt").write_text(
+            str(acct["account_id"]) + "\n"
+        )
     log.info("cycle done: %s action(s)", summary["n"])
     return summary
 

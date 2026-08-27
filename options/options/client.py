@@ -113,6 +113,7 @@ class MockClient(BaseClient):
             "equity": self._equity,
             "cash": self._cash,
             "buying_power": self._equity,
+            "account_id": "MOCK-ACCT",
             "options_level": 3,
             "daytrade_count": 0,
         }
@@ -443,8 +444,19 @@ class McpClient(BaseClient):
         # we rely on. If parsing fails, surface zeroes so the arbiter halts
         # rather than trading blind.
         acct = {}
+        account_id = None
         if isinstance(text, str):
             import re
+            # Alpaca MCP account text carries an account identifier line:
+            #   "Account: ABC12345 (paper)"
+            # Skip the known field names so "Account\nEquity: ..." does not
+            # mis-capture "Equity" as the id.
+            m = re.search(r"(?im)^account[^0-9A-Za-z]*([A-Za-z0-9][A-Za-z0-9_-]*)", text)
+            if m and m.group(1).lower() not in {
+                "equity", "cash", "buying", "buying_power", "options",
+                "level", "daytrade", "positions", "id", "number",
+            }:
+                account_id = m.group(1)
             for key in ("equity", "cash", "buying_power"):
                 # Accept "Buying Power" (spaced) as well as snake_case keys.
                 pat = key.replace("_", " ")
@@ -457,10 +469,12 @@ class McpClient(BaseClient):
                 "cash": _pick(text, "cash", "Cash") or 0.0,
                 "buying_power": _pick(text, "buying_power", "Buying Power") or 0.0,
             }
+            account_id = _pick(text, "account_id", "account id", "Account ID") or None
         return {
             "equity": float(acct.get("equity") or 0.0),
             "cash": float(acct.get("cash") or 0.0),
             "buying_power": float(acct.get("buying_power") or 0.0),
+            "account_id": account_id,
             "options_level": int(config.options_level()),
             "daytrade_count": 0,
         }

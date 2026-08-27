@@ -170,6 +170,26 @@ class TestAccount:
         assert acct["cash"] == pytest.approx(60_000.0)
         assert acct["buying_power"] == pytest.approx(100_000.0)
 
+    def test_get_account_parses_account_id(self):
+        text = (
+            "Account: PAPER-ABC12345 (paper)\n"
+            "Equity: $100,000.00\n"
+            "Cash: $60,000.00\n"
+            "Buying Power: $100,000.00\n"
+        )
+        fake = FakeRequests([{"text": text}])
+        c = make_client(fake)
+        acct = c.get_account()
+        assert acct["account_id"] == "PAPER-ABC12345"
+        assert acct["equity"] == pytest.approx(100_000.0)
+
+    def test_get_account_does_not_misparse_field_name_as_id(self):
+        # "Account" line followed by a field name must NOT become the id.
+        text = "Account\nEquity: $100,000.00\nCash: $60,000.00\n"
+        fake = FakeRequests([{"text": text}])
+        c = make_client(fake)
+        assert c.get_account()["account_id"] is None
+
     def test_get_account_parses_content_wrapped_text(self):
         text = (
             "Account\n"
