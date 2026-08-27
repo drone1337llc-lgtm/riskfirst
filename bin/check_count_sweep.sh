@@ -3,11 +3,22 @@ set -euo pipefail
 cd ~/cryptobot-train
 
 # Drift guard: fail if any judge-facing surface claims a stale test count.
-# Exact expected figure verified live: 133 = 62 cryptobot + 71 options.
-# NOTE: css color rgba(255,107,107) is NOT a count â€” only match count-like contexts.
-BAD=$(grep -rEn "(107|117|98|93|92|90|89)[[:space:]]*TESTS?[[:space:]]*PASS|\(107 tests|107 passing|107 offline|107-test" \
+# Canonical figure verified live: 133 = 60 cryptobot + 73 options.
+# FIX 2026-08-26: old regex only matched counts 89-117, so 131/107-style
+# stale claims sailed through. Now: flag ANY '<N> tests/passing/offline' or
+# '<N>/<N> tests' claim whose number is not 133 (case-insensitive, md+html,
+# backups excluded), then verify the canonical suite count matches.
+COUNT=$(cryptobot/.venv/bin/python -m pytest cryptobot/tests options/tests --collect-only -q 2>/dev/null | tail -1 | grep -oE '^[0-9]+' || echo 0)
+echo "canonical suite count: $COUNT"
+if [ "$COUNT" != "133" ]; then
+  echo "WARNING: canonical count is $COUNT, docs claim 133 -- re-sweep needed"
+  exit 1
+fi
+
+BAD=$(grep -rEni "[0-9]+-?[[:space:]]*(tests?|passing|offline)|[0-9]+/[0-9]+[[:space:]]*tests?" \
   --include="*.md" --include="*.html" \
-  SUBMISSION.md presentation slides posts README.md 2>/dev/null | grep -v "\.bak-" || true)
+  SUBMISSION.md presentation slides posts README.md 2>/dev/null \
+  | grep -v "\.bak" | grep -vE "\b133\b" || true)
 
 if [ -n "$BAD" ]; then
   echo "STALE TEST-COUNT CLAIMS FOUND:"
@@ -15,11 +26,15 @@ if [ -n "$BAD" ]; then
   exit 1
 fi
 
-# Also verify the canonical suite count matches what surfaces claim.
-COUNT=$(cryptobot/.venv/bin/python -m pytest cryptobot/tests options/tests --collect-only -q 2>/dev/null | tail -1 | grep -oE '^[0-9]+' || echo 0)
-echo "canonical suite count: $COUNT"
-if [ "$COUNT" != "133" ]; then
-  echo "WARNING: canonical count is $COUNT, docs claim 133 -- re-sweep needed"
-  exit 1
-fi
-echo "count sweep clean: 133 everywhere"
+# Verify the per-dir breakdown claim (60 + 73) is present on all 5 surfaces.
+MISSING=0
+for f in SUBMISSION.md presentation/PROJECT_TITLE_DESCRIPTION.md \
+         presentation/SUBMISSION_CHECKLIST.md presentation/BUILD_IN_PUBLIC_JOURNAL.md; do
+  if ! grep -qE '60 cryptobot \+ 73 options' "$f"; then
+    echo "MISSING 60+73 breakdown in $f"
+    MISSING=1
+  fi
+done
+[ "$MISSING" -eq 1 ] && exit 1
+
+echo "count sweep clean: 133 (60+73) everywhere"

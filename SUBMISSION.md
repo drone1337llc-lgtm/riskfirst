@@ -82,7 +82,7 @@ order-builder hits the real Alpaca paper API via MCP.
 (clearly labeled), the SAME guardrails run as the paper path (`_guard_legs`:
 2-4 unique legs, $500/leg cap, $1 floor, intent whitelist), and the fill is
 SIMULATED. Swap in paper keys and the identical order-builder hits the real
-Alpaca paper API. Full guardrail suite: `python -m pytest` (133 tests: 62 cryptobot + 71 options — incl. Greeks, risk arbiter, MCP contract, LLM referee, and the paper-loop runner).
+Alpaca paper API. Full guardrail suite: `python -m pytest` (133 tests: 60 cryptobot + 73 options — incl. Greeks, risk arbiter, MCP contract, LLM referee, and the paper-loop runner).
 
 ## Build-in-public (posts scheduled Aug 27 → Sep 3)
 
