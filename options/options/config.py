@@ -44,11 +44,17 @@ TARGET_DTE: int = 21                     # preferred theta harvest horizon
 DELTA_SHORT: float = 0.25                # short strike delta target (abs)
 
 # Which underlyings we scan (US equities/ETFs with deep options markets).
-SCAN_UNDERLYINGS: tuple[str, ...] = ("SPY", "QQQ")
+SCAN_UNDERLYINGS: tuple[str, ...] = ("SPY", "QQQ", "IWM")
 
 # Portfolio guardrails.
 MAX_PORTFOLIO_WEIGHT_OPTIONS: float = 0.30  # options not >30% of equity
 CASH_RESERVE_PCT: float = 0.10              # keep 10% cash buffer minimum
+
+# Equity seed (covered-call wheel bootstrap): on the first cycle with zero
+# equity positions, buy one 100-share lot of the cheapest affordable scan
+# underlying (IWM ~$200 -> ~$20k lot, ~20% of $100k) so the covered-call
+# lane is live on paper from day one. 0.40 = 40% equity cap on the seed lot.
+EQUITY_SEED_PCT: float = 0.40
 
 # Per-leg order guardrails (same semantics as the equity lane's _guard_legs:
 # premium = qty x price, not strike notional).
@@ -73,6 +79,7 @@ class RiskLimits:
     delta_short: float = DELTA_SHORT
     min_order_notional: float = MIN_ORDER_NOTIONAL
     max_option_notional: float = MAX_OPTION_NOTIONAL
+    equity_seed_pct: float = EQUITY_SEED_PCT
 
 
 def options_level() -> int:

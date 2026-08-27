@@ -91,6 +91,47 @@ def set_state_dir(mock: bool) -> Path:
 # ---------------------------------------------------------------------------
 # Market clock
 # ---------------------------------------------------------------------------
+def _mock_holdings_path() -> Path:
+    return STATE_DIR / "holdings.json"
+
+
+def _restore_mock_holdings(client) -> None:
+    """Re-apply equity holdings persisted by a prior mock cycle."""
+    try:
+        data = json.loads(_mock_holdings_path().read_text())
+    except (OSError, ValueError):
+        return
+    cost = 0.0
+    for symbol, qty in data.items():
+        try:
+            client.set_shares(str(symbol), int(qty))
+            from options.client import SPOT_PRICES
+            cost += SPOT_PRICES.get(str(symbol), 100.0) * int(qty)
+        except Exception:
+            pass
+    if cost > 0:
+        try:
+            acct = client.get_account()
+            client.set_cash(float(acct.get("cash") or 0.0) - cost)
+        except Exception:
+            pass
+
+
+def _save_mock_holdings(client) -> None:
+    """Persist equity holdings so the next mock cycle starts where this one
+    ended (a real paper account persists positions in Alpaca; the mock has
+    only in-memory state, so we mirror it to disk)."""
+    holds = {
+        p["symbol"]: int(p.get("qty") or 0)
+        for p in client.get_positions()
+        if p.get("asset_class") == "us_equity" and int(p.get("qty") or 0) > 0
+    }
+    try:
+        _mock_holdings_path().write_text(json.dumps(holds))
+    except OSError:
+        pass
+
+
 def in_market_hours(now: datetime | None = None) -> bool:
     """True on Mon-Fri during 09:30-16:00 America/New_York (equity RTH)."""
     now = now or (datetime.now(NY) if NY else datetime.now())
@@ -162,6 +203,8 @@ def write_status(summary: dict) -> None:
 
 def make_agent(mock: bool) -> agent_mod.Agent:
     client = client_mod.build_client(live=not mock)
+    if mock:
+        _restore_mock_holdings(client)
     use_referee = os.environ.get("OLLAMA_REFEREE_DISABLED", "0") != "1"
     referee = LLMReferee() if (use_referee and not mock) else None
     return agent_mod.Agent(client=client, db_path=str(DB_PATH), referee=referee)
@@ -186,6 +229,8 @@ def _run_once(agent: agent_mod.Agent, mock: bool) -> dict:
     }
     summary["mode"] = "MOCK" if mock else "MCP-PAPER"
     write_status(summary)
+    if mock:
+        _save_mock_holdings(agent.client)
     # Persist the paper account id for the submission (SUBMISSION.md section).
     # Real (MCP-PAPER) cycles only -- mock cycles must never clobber it.
     if not mock and acct.get("account_id"):

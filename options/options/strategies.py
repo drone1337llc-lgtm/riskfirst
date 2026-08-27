@@ -211,9 +211,35 @@ def protective_put(
 
 
 # --------------------------------------------------------------------------- #
+# Equity seed (covered-call wheel bootstrap)
+# --------------------------------------------------------------------------- #
+def buy_underlying(symbol: str, spot: float, qty: int = 100) -> OrderProposal:
+    """Buy qty shares of the underlying (market order) to seed the wheel.
+
+    A fresh paper account starts flat; the covered-call strategy requires
+    100+ held shares. This is the equity leg of the wheel: buy the lot,
+    then sell ~delta-0.25 calls against it on later cycles.
+    """
+    return OrderProposal(
+        strategy="equity_bootstrap",
+        symbol=symbol,
+        underlying=symbol,
+        side="buy",
+        qty=qty,
+        price=spot,
+        delta=0.0,
+        dte=0,
+        iv_rank=0.0,
+        notional=round(spot * qty, 2),
+        reason="equity seed for covered-call wheel",
+    )
+
+
+# --------------------------------------------------------------------------- #
 # Strategy registry (used by agent + tests)
 # --------------------------------------------------------------------------- #
 STRATEGIES = {
+    "equity_bootstrap": buy_underlying,
     "covered_call": covered_call,
     "cash_secured_put": cash_secured_put,
     "protective_put": protective_put,

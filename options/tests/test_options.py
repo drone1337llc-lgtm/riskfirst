@@ -176,6 +176,13 @@ class TestRiskArbiter(unittest.TestCase):
                                 net_delta=0.15)
         self.assertTrue(accepted)
 
+    def test_bootstrap_builder_prices_notional(self):
+        prop = strat.buy_underlying("IWM", 200.0)
+        self.assertEqual(prop.strategy, "equity_bootstrap")
+        self.assertEqual(prop.side, "buy")
+        self.assertEqual(prop.qty, 100)
+        self.assertAlmostEqual(prop.notional, 20_000.0)
+
     def test_normal_proposal_accepted(self):
         arb = RiskArbiter(self.limits)
         accepted, reason = arb.check(self._prop(notional=1500),
@@ -226,6 +233,83 @@ class TestStrategies(unittest.TestCase):
         if prop is not None:
             self.assertLessEqual(prop.notional, 10_000)
             self.assertLessEqual(prop.notional, 100_000 * 0.02)
+
+
+class TestEquitySeed(unittest.TestCase):
+    def test_bootstrap_buys_cheapest_when_flat(self):
+        # Fresh paper account: no shares anywhere -> buy one IWM lot
+        # (cheapest affordable scan underlying) to enable covered calls.
+        client = MockClient(equity=100_000, today=TODAY)
+        client.set_shares("SPY", 0)
+        client.set_shares("QQQ", 0)
+        client.set_shares("IWM", 0)
+        client.set_cash(80_000)
+        agent = Agent(client=client, db_path=":memory:")
+        try:
+            decisions = agent.run_cycle()
+            seeds = [d for d in decisions if d["strategy"] == "equity_bootstrap"]
+            self.assertEqual(len(seeds), 1)
+            self.assertEqual(seeds[0]["symbol"], "IWM")
+            self.assertEqual(seeds[0]["qty"], 100)
+            self.assertEqual(client._shares["IWM"], 100)
+            self.assertAlmostEqual(client._cash, 80_000 - 100 * 200.0)
+        finally:
+            agent.close()
+
+    def test_bootstrap_skips_when_shares_held(self):
+        # Already seeded (or holding from a prior cycle) -> no bootstrap.
+        client = MockClient(equity=100_000, today=TODAY)
+        client.set_shares("SPY", 200)
+        client.set_cash(80_000)
+        agent = Agent(client=client, db_path=":memory:")
+        try:
+            decisions = agent.run_cycle()
+            self.assertNotIn(
+                "equity_bootstrap", [d["strategy"] for d in decisions])
+        finally:
+            agent.close()
+
+    def test_wheel_two_cycles_bootstrap_then_covered_call(self):
+        # Cycle 1: flat account -> buy IWM lot. Cycle 2: hold 100 shares ->
+        # sell a covered call against them (the Options & Equities wheel).
+        client = MockClient(equity=100_000, today=TODAY)
+        client.set_shares("SPY", 0)
+        client.set_shares("QQQ", 0)
+        client.set_shares("IWM", 0)
+        client.set_cash(80_000)
+        agent = Agent(client=client, db_path=":memory:")
+        try:
+            d1 = agent.run_cycle()
+            seeds = [d for d in d1 if d["strategy"] == "equity_bootstrap"]
+            self.assertEqual(len(seeds), 1)
+            self.assertEqual(seeds[0]["symbol"], "IWM")
+            # Cycle 2: equity held -> covered-call lane live; no re-seed.
+            d2 = agent.run_cycle()
+            ccs = [d for d in d2 if d["strategy"] == "covered_call"]
+            self.assertEqual(len(ccs), 1)
+            self.assertTrue(ccs[0]["symbol"].startswith("IWM"))
+            self.assertEqual(ccs[0]["qty"], 1)  # 100 shares -> 1 contract
+            self.assertNotIn("equity_bootstrap",
+                             [d["strategy"] for d in d2])
+        finally:
+            agent.close()
+
+
+    def test_bootstrap_skips_when_none_affordable(self):
+        # Tiny account: even the IWM lot (100 x 200 = $20k) exceeds 40%.
+        client = MockClient(equity=10_000, today=TODAY)
+        client.set_shares("SPY", 0)
+        client.set_shares("QQQ", 0)
+        client.set_shares("IWM", 0)
+        client.set_cash(8_000)
+        agent = Agent(client=client, db_path=":memory:")
+        try:
+            decisions = agent.run_cycle()
+            self.assertNotIn(
+                "equity_bootstrap", [d["strategy"] for d in decisions])
+            self.assertEqual(client._shares["IWM"], 0)
+        finally:
+            agent.close()
 
 
 class TestAgentCycle(unittest.TestCase):

@@ -41,6 +41,10 @@ class BaseClient:
     def submit_order(self, proposal) -> dict:
         raise NotImplementedError
 
+    def submit_stock_order(self, proposal) -> dict:
+        """Buy/sell shares of the underlying (equity leg of the wheel)."""
+        raise NotImplementedError
+
     def flatten(self) -> None:
         """Close all open options positions (risk circuit-breaker)."""
         raise NotImplementedError
@@ -88,14 +92,15 @@ def _mk_option(
     )
 
 
-SPOT_PRICES = {"SPY": 560.0, "QQQ": 480.0}
+SPOT_PRICES = {"SPY": 560.0, "QQQ": 480.0, "IWM": 200.0}
 
 
 class MockClient(BaseClient):
     """Deterministic offline backend. No network, no keys.
 
-    SPY starts with 200 held shares so the covered-call strategy is exercisable
-    without needing a prior stock purchase.
+    Starts FLAT, exactly like a fresh $100k paper account: the first cycle
+    triggers the equity bootstrap (buy one 100-share IWM lot) so the demo
+    matches the live paper lifecycle instead of pretending shares exist.
     """
 
     def __init__(self, equity: float = 100_000.0, today: Optional[date] = None):
@@ -104,7 +109,7 @@ class MockClient(BaseClient):
         self._cash = 0.6 * equity
         self._orders: list[dict] = []
         self._positions: list[dict] = []
-        self._shares = {"SPY": 200, "QQQ": 0}   # SPY holdings enable covered calls
+        self._shares = {"SPY": 0, "QQQ": 0, "IWM": 0}   # start flat (fresh paper acct)
         self._chain_cache: dict[str, list[opt.Option]] = {}
 
     # -- account ----------------------------------------------------------- #
@@ -126,6 +131,23 @@ class MockClient(BaseClient):
 
     def set_shares(self, symbol: str, qty: int) -> None:
         self._shares[symbol] = qty
+
+    def submit_stock_order(self, proposal) -> dict:
+        spot = SPOT_PRICES.get(proposal.symbol, 100.0)
+        cost = round(spot * proposal.qty, 2)
+        if proposal.side == "buy":
+            self._cash -= cost
+            self._shares[proposal.symbol] = self._shares.get(proposal.symbol, 0) + proposal.qty
+        rec = {
+            "time": datetime.now().isoformat(),
+            "strategy": proposal.strategy,
+            "symbol": proposal.symbol,
+            "side": proposal.side,
+            "qty": proposal.qty,
+            "price": spot,
+        }
+        self._orders.append(rec)
+        return {"status": "accepted", "order": rec}
 
     def set_cash(self, cash: float) -> None:
         self._cash = cash
@@ -328,6 +350,18 @@ def build_chain_args(underlying: str, today: Optional[date] = None,
     today = today or date.today()
     limits = limits or config.RiskLimits()
     return {"underlying_symbol": underlying, "limit": 250}
+
+
+def build_stock_order_args(proposal) -> dict:
+    """Map an OrderProposal onto the MCP place_stock_order shape."""
+    side = "buy" if str(proposal.side).startswith("buy") else "sell"
+    return {
+        "symbol": proposal.symbol,
+        "qty": str(int(proposal.qty)),
+        "side": side,
+        "type": "market",
+        "time_in_force": "day",
+    }
 
 
 def build_order_args(proposal) -> dict:
@@ -538,6 +572,14 @@ class McpClient(BaseClient):
         args = build_order_args(proposal)
         result = self._request("tools/call", {
             "name": "place_option_order",
+            "arguments": args,
+        })
+        return {"status": "submitted", "mcp_result": result}
+
+    def submit_stock_order(self, proposal) -> dict:
+        args = build_stock_order_args(proposal)
+        result = self._request("tools/call", {
+            "name": "place_stock_order",
             "arguments": args,
         })
         return {"status": "submitted", "mcp_result": result}

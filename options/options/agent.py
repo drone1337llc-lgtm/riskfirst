@@ -202,6 +202,37 @@ class Agent:
             if p.get("asset_class") in ("us_option", "option")
         )
 
+    def _has_equity(self) -> bool:
+        """True if the account already holds shares of any underlying."""
+        return any(
+            p.get("asset_class") == "us_equity" and int(p.get("qty") or 0) > 0
+            for p in self.client.get_positions()
+        )
+
+    def _equity_seed(self, account: dict, cash: float):
+        """Propose a 100-share bootstrap lot of the cheapest affordable
+        scan underlying (default IWM ~$200 -> ~$20k, 20% of $100k paper).
+
+        A fresh paper account starts flat; without this the covered-call
+        lane can never fire and the equities half of the agent is hollow.
+        Returns None when nothing is affordable (or already seeded).
+        """
+        equity = account["equity"]
+        budget = equity * self.limits.equity_seed_pct
+        best = None
+        for underlying in config.SCAN_UNDERLYINGS:
+            chain = self.client.get_contracts(underlying)
+            spot = next((c.spot for c in chain), None)
+            if spot is None:
+                continue
+            cost = spot * 100
+            if cost <= budget and cost <= cash:
+                if best is None or cost < best["cost"]:
+                    best = {"underlying": underlying, "spot": spot, "cost": cost}
+        if best is None:
+            return None
+        return strat.buy_underlying(best["underlying"], best["spot"])
+
     def _gate_and_submit(self, proposal, account: dict, cash: float) -> bool:
         accepted, reason = self.arbiter.check(
             proposal, account, cash, net_delta=self.net_delta())
@@ -240,7 +271,36 @@ class Agent:
             return [{"action": "FLATTEN", "reason": f"circuit breaker (-{dd:.1%} from high)"}]
 
         decisions: list[dict] = []
-        for underlying in config.SCAN_UNDERLYINGS:
+
+        # Equity seed: a fresh paper account starts flat. Buy one 100-share
+        # lot of the cheapest affordable underlying so the covered-call lane
+        # is exercisable on paper (wheel: own shares -> sell ~delta-0.25
+        # calls). Routed past the options arbiter (it sizes on premium, not
+        # share notional); logged to the audit trail like any other decision.
+        if not self._has_equity():
+            seed = self._equity_seed(account, cash)
+            if seed is not None:
+                self.db.log_decision(seed, True, seed.reason)
+                self.client.submit_stock_order(seed)
+                decisions.append({
+                    "action": "TRADE",
+                    "strategy": seed.strategy,
+                    "symbol": seed.symbol,
+                    "qty": seed.qty,
+                    "price": seed.price,
+                    "delta": seed.delta,
+                    "iv_rank": seed.iv_rank,
+                })
+
+        # Wheel-first scan order: underlyings with held shares (the covered-
+        # call lane) are evaluated before the cash-secured-put lane, so the
+        # bootstrap equity can actually be worked and CSPs cannot fill the
+        # net-delta cap before the covered call is sized.
+        scan_order = (
+            [u for u in config.SCAN_UNDERLYINGS if self.held_shares(u) >= 100]
+            + [u for u in config.SCAN_UNDERLYINGS if self.held_shares(u) < 100]
+        )
+        for underlying in scan_order:
             chain = self.client.get_contracts(underlying)
             spot = next((c.spot for c in chain), None)
             if spot is None:

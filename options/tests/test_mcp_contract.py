@@ -241,6 +241,29 @@ class TestPositions:
 
 
 class TestOrderSubmission:
+    def test_build_stock_order_args(self):
+        prop = OrderProposal(
+            strategy="equity_bootstrap", symbol="IWM", underlying="IWM",
+            side="buy", qty=100, price=200.0, delta=0.0, dte=0,
+            iv_rank=0.0, notional=20_000.0)
+        args = cl.build_stock_order_args(prop)
+        assert args == {
+            "symbol": "IWM", "qty": "100", "side": "buy",
+            "type": "market", "time_in_force": "day",
+        }
+
+    def test_submit_stock_order_calls_place_stock_order(self):
+        fake = FakeRequests([{"order_id": "xyz789", "status": "accepted"}])
+        c = make_client(fake)
+        prop = OrderProposal(
+            strategy="equity_bootstrap", symbol="IWM", underlying="IWM",
+            side="buy", qty=100, price=200.0, delta=0.0, dte=0,
+            iv_rank=0.0, notional=20_000.0)
+        res = c.submit_stock_order(prop)
+        assert fake.calls[0][1]["name"] == "place_stock_order"
+        assert fake.calls[0][1]["arguments"]["qty"] == "100"
+        assert res["status"] == "submitted"
+
     def test_submit_order_calls_place_option_order(self):
         fake = FakeRequests([{"order_id": "abc123", "status": "accepted"}])
         c = make_client(fake)

@@ -22,6 +22,7 @@ Alt (shorter):
 
 - Scores a liquid equity universe (SPY, QQQ, AAPL, MSFT, NVDA) with momentum/mean-reversion signals and sizes positions **vol-targeted** (risk per position scaled by realized vol, not fixed notional).
 - Runs a defensive **options wheel overlay** — cash-secured puts + covered calls — on the same liquid underlyings, so the agent has both a long-beta engine and a defined-risk income/hedge layer.
+  - A fresh paper account starts flat, so on the first cycle the agent **buys one 100-share IWM lot (~$20k, 20% of equity)** (the equity leg of the wheel, `equity_bootstrap` in the decision log) and sells ~Δ 0.25 calls against it thereafter.
 - Enforces hard guardrails **before** any order reaches the broker: max 4 unique legs per multi-leg order, only valid intents (BTO/BTC/STO/STC), $500 notional cap per leg, $1 minimum, and a **-10% trailing drawdown circuit-breaker** that forces the book flat until regime confirmation.
 - Connects through the **Alpaca MCP server** (`uvx alpaca-mcp-server`, launcher in `bin/run_mcp.sh` — stdio / streamable-http / SSE) so the agent's market reads and order decisions are tool-visible and auditable, not a black box.
 
@@ -82,7 +83,7 @@ order-builder hits the real Alpaca paper API via MCP.
 (clearly labeled), the SAME guardrails run as the paper path (`_guard_legs`:
 2-4 unique legs, $500/leg cap, $1 floor, intent whitelist), and the fill is
 SIMULATED. Swap in paper keys and the identical order-builder hits the real
-Alpaca paper API. Full guardrail suite: `python -m pytest` (133 tests: 60 cryptobot + 73 options — incl. Greeks, risk arbiter, MCP contract, LLM referee, and the paper-loop runner).
+Alpaca paper API. Full guardrail suite: `python -m pytest` (140 tests: 60 cryptobot + 80 options — incl. Greeks, risk arbiter, MCP contract, LLM referee, and the paper-loop runner).
 
 ## Build-in-public (posts scheduled Aug 27 → Sep 3)
 

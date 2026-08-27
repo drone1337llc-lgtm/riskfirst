@@ -16,10 +16,10 @@
 ## 2. Media deliverables
 - [x] **Cover image** — `cover.png` (1280×720, rendered from `cover-src.html`, RiskFirst branding, honest framing incl. 2.35 seed-42 Sharpe + 2/4 negative folds)
 - [x] **Video presentation** — `demo-reel.mp4` (30 s, 10 slides × 3 s, rendered from the current 10-slide deck; rebuild with `bin/rebuild_reel.sh` after any deck change). *Live-demo version to be re-recorded when real keys land (placeholder until then).*
-- [x] **Slide deck** — `slides/index.html` (10 slides, RiskFirst-branded, 133-test + OOS-gate honest numbers)
+- [x] **Slide deck** — `slides/index.html` (10 slides, RiskFirst-branded, 140-test + OOS-gate honest numbers)
 
 ## 3. Public repo (PUBLISH — do NOT include keys)
-- [ ] Push repo to **public GitHub** — blocked on Surge: gh CLI token on .67 INVALID (drone1337llc-lgtm); SSH `git@github.com` authenticates fine as drone1337llc-lgtm; repo CREATION needs an API token or a repo pre-created. (Backup bundle + runtime state stored on teamamd `backups\alpaca-kit\`.)
+- [ ] Push repo to **public GitHub** — blocked on Surge: gh CLI token on .67 INVALID (drone1407llc-lgtm); SSH `git@github.com` authenticates fine as drone1407llc-lgtm; repo CREATION needs an API token or a repo pre-created. (Backup bundle + runtime state stored on teamamd `backups\alpaca-kit\`.)
 - [x] Include: `cryptobot/` + `options/` source, `tests/`, `README.md`, `presentation/` (title/desc, pitch, journal, checklist), `posts/` (5 build-in-public posts), `SUBMISSION.md`.
 - [x] **EXCLUDE / never commit:** `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`, any `.env`, `options/decisions.db` (runtime churn + account snapshots), `config.py.bak-*`. `.gitignore` extended for all of these (commit 477fdd7).
 - [x] `config.py` reads keys from env only; **`ALPACA_REAL_TRADING=1` is the only forbidden env** — paper is hard-forced (`ALPACA_PAPER=true`) inside `McpClient`'s server env, so live keys cannot reach a real account.
@@ -40,7 +40,7 @@
 - [x] Trades via **Alpaca MCP / CLI** ✓
 - [x] **Paper only**, fresh account, $100k start ✓ (paper hard-forced in client)
 - [x] **No live keys committed** ✓
-- [x] **133 offline tests pass** (verified: 60 cryptobot + 73 options incl. MCP contract, LLM referee, runner) ✓
+- [x] **140 offline tests pass** (verified: 60 cryptobot + 80 options incl. MCP contract, LLM referee, runner) ✓
 - [x] Walk-forward OOS Sharpe **positive** (2.35 seed-42 mean, 2/4 negative folds — honestly framed) ✓
 
 ## 7. Final freeze
