@@ -24,7 +24,7 @@ That's reasoning about market conditions, not a hardcoded trigger. It's what sep
 
 - **Black-Scholes Greeks computed locally** (delta/gamma/theta/vega/rho), implied vol solved by bisection — no external pricing API. **Verified by put-call parity tests.**
 - **Reads live chains** via the Alpaca MCP server (`uvx alpaca-mcp-server`, stdio JSON-RPC — every call a tool: account, chains, multi-leg orders, `close_all_positions` circuit-breaker). Paper is **hard-forced** in the client's server env: a live key cannot reach a real account.
-- **Fully offline-tested** against a deterministic mock client — **130 passing tests** (Greeks, parity, IV recovery, 2% sizing, drawdown blocks, spread/OI screens, MCP contract, LLM referee, paper-loop runner). Zero keys needed.
+- **Fully offline-tested** against a deterministic mock client — **131 passing tests** (Greeks, parity, IV recovery, 2% sizing, drawdown blocks, spread/OI screens, MCP contract, LLM referee, paper-loop runner). Zero keys needed.
 
 ## The risk framework
 
@@ -46,7 +46,7 @@ We ran an **adversarial audit of our own existing bot** (Cryptonaut) before addi
 - **Trades via Alpaca MCP** (mandatory) ✓
 - **Multi-agent LLM reasoning + IV-rank structure selection** (creativity) ✓
 - **Strict, quantified risk rails + circuit-breaker** (responsibility) ✓
-- **130 passing offline tests + positive OOS Sharpe** (technical credibility) ✓
+- **131 passing offline tests + positive OOS Sharpe** (technical credibility) ✓
 - **Auditable SQLite decision log** (explainability) ✓
 
 **RiskFirst — the gate decides what trades, the arbiter decides what ships, the log proves both.**

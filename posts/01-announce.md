@@ -11,6 +11,6 @@ First, three foundation fixes my review forced:
 - **Drawdown lambda 3.0 → 0.4** (reward risk-taking properly)
 - **Decision interval 60s → 300s** (trade like a portfolio manager, not a scalper)
 
-Also fixed a silent killer: a 0-commission sim that cancelled *every order* (tensortrade patched, verified zero cancels). Without that fix, the honest config would have just hugged cash.
+Also fixed a silent killer: the train sim priced a 3%/trade commission that live paper never pays, so the policy learned to hug cash. The fix is regression-pinned: at commission=0 the sim fills every order (verified live in the suite, zero silent cancels).
 
 Repo goes public this week. Gate results next post.
