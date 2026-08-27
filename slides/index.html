@@ -119,11 +119,11 @@
     <h2>One agent, two engines, all paper</h2>
     <div class="grid g2">
       <div class="card"><h3>Equity engine</h3><p>Momentum + mean-reversion scores on <b>SPY · QQQ · AAPL · MSFT · NVDA</b>. Positions are sized <b>vol-targeted</b> — risk per position scaled by realized vol, not fixed notional.</p></div>
-      <div class="card"><h3>Options wheel overlay</h3><p>Cash-secured puts + covered calls on the same liquid underlyings. A defined-risk income/hedge layer on top of the long-beta engine.</p></div>
+      <div class="card"><h3>Options wheel overlay</h3><p>Cash-secured puts + covered calls (SPY · QQQ · IWM). A fresh paper account starts flat, so the first cycle buys one 100-share IWM lot and sells ~Δ0.25 calls against it — covered calls fire from day one. A defined-risk income/hedge layer on top of the long-beta engine.</p></div>
     </div>
     <ul>
       <li>Full Alpaca options API: <span class="pill">OptionChainRequest</span><span class="pill">OptionHistoricalDataClient</span><span class="pill">OrderRequest mleg</span><span class="pill">BTO/BTC/STO/STC</span></li>
-      <li>Universe: <span class="pill">SPY</span><span class="pill">QQQ</span><span class="pill">AAPL</span><span class="pill">MSFT</span><span class="pill">NVDA</span></li>
+      <li>Universe: <span class="pill">SPY</span><span class="pill">QQQ</span><span class="pill">AAPL</span><span class="pill">MSFT</span><span class="pill">NVDA</span><span class="pill">IWM</span></li>
       <li>Entry: <span class="pill green">bot/equity_agent.py</span> — data, scoring, wheel placement, execution all in one auditable path</li>
     </ul>
     <div class="foot"><span>RiskFirst · 05/09</span><span>Bot 4 · Paper account · MCP-ready</span></div>
