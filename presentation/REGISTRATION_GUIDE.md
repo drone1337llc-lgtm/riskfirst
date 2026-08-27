@@ -28,7 +28,7 @@
 4. I dry-run the full flow end-to-end and freeze code by Sep 3 night.
 
 ## Also parked for you (not urgent)
-- **Public repo push** — gh API token on .67 is invalid; SSH auth works as `drone1407llc-lgtm`. Either drop a new token in or pre-create the repo; I'll push.
+- **Public repo push** — gh API token on .67 is invalid; SSH auth works as `drone1337llc-lgtm`. Either drop a new token in or pre-create the repo; I'll push.
 - **Build-in-public posts** (optional social track) — 5 drafts ready in `posts/`; post links can be pasted at submission if you want them counted.
 
 Everything else in the kit is done and verified (140/140 tests, cover + reel + 10-slide deck, honest seed-42 deterministic OOS gate 2.35 mean Sharpe). Deadline Sep 4 15:00 UTC.
