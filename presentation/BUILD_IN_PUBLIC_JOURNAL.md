@@ -40,6 +40,8 @@
 **Lesson:** A trading agent's credibility is its test suite. Offline, deterministic, keyless tests are what let you say "the risk math is verified" without touching a paper dollar.
 
 **Hook:** "140 tests on an options agent that run offline with zero keys. Here's how."
+**Addendum (Aug 27, 07:40 MDT) — first live market-hours cycle captured:** The mock lane fired its first genuine RTH-open cycle at 07:30:01 and has been cycling clean every 5 min since (07:35:01, 07:40:02 both OK). Fresh decision logged: **TRADE covered_call IWM261011C00216000 qty1 $2.78, d0.251, IVR 0.70** — flat start to 100-share IWM lot to ~d0.25 covered call, exactly the bootstrap story. Equity $100k / cash $40k (MOCK-ACCT). The automation producing this evidence is cron-armed (`mock_lane_watch.sh`, flock-serialized, RTH-gated 09:30-16:00 NY) and self-runs through the judging window; the paper lane swaps in the moment keys land.
+
 
 ---
 
