@@ -10,7 +10,7 @@
 - [x] **Hook (1–2 sentences):** in `PROJECT_TITLE_DESCRIPTION.md`
 - [x] **Description:** full narrative in `PROJECT_TITLE_DESCRIPTION.md` (multi-agent bull/bear/neutral + IV-rank + LLM referee + risk arbiter, MCP tool surface, OOS gate)
 - [x] **Pitch:** `PITCH.md` (2-min read, for judges)
-- [ ] **Registration:** lablab.ai account enrolled in the event **before Aug 28 15:00 UTC** (registration closes AT kickoff - verified live page 2026-08-26; gates the whole submission, do it first)
+- [ ] **Registration:** lablab.ai account enrolled in the event **before Aug 28 15:00 UTC** (registration closes AT kickoff - verified live page 2026-08-26; gates the whole submission, do it first). Direct link: https://lablab.ai/ai-hackathons/alpaca-ai-trading-agents-hackathon
 - [ ] **Tags:** `AI agent`, `options`, `Alpaca MCP`, `risk management`, `IV rank`, `paper trading`, `multi-agent`, `volatility` (copy these at submission)
 
 ## 2. Media deliverables

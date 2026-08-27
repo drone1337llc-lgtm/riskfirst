@@ -5,8 +5,7 @@
 ## 3 steps, ~10 minutes
 
 ### 1. Enroll on lablab.ai (by Aug 28 15:00 UTC)
-- Open lablab.ai → find **"Alpaca AI Trading Agents" Hackathon** (main track: **Options Alpha Agents**).
-- Log in / sign up (Google or GitHub), click **Register/Enroll** on the event page.
+- **Go straight to the event page: https://lablab.ai/ai-hackathons/alpaca-ai-trading-agents-hackathon** (verified live 2026-08-27) → log in / sign up (Google or GitHub), click **Register/Enroll** on the event page.
 - That's it for step 1. Nothing else needs to be done before kickoff.
 
 ### 2. Create the fresh Alpaca paper account (this week)
