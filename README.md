@@ -48,6 +48,15 @@ cryptobot/
     execute.py           Alpaca paper execution + guardrails
     run.py               24/7 loop with backoff + circuit-breaker
   evals/                 canonical OOS gate verdicts (seed-42, reproducible)
+options/
+  options/
+    agent.py             options + equities lane (equity bootstrap, wheel-first scan)
+    runner.py            5-min paper loop (mock or Alpaca paper, RTH-gated)
+    client.py            Alpaca MCP client (place_stock_order / place_option_order)
+    cli.py               CLI entry (MCP/CLI track)
+    strategies.py        CSP + covered-call wheel, equity scoring
+    config.py            notional caps, net-delta cap, scan universe
+  tests/                 80 tests (options lane) — 140 total with cryptobot 60
 bin/
   run_mcp.sh             uvx alpaca-mcp-server launcher (stdio/http/sse, --env-file)
 ```
@@ -85,7 +94,12 @@ python -m cryptobot.bot.run         # 24/7 paper loop
 
 - OOS gate: **PASS** (seed-42 deterministic mean ann. Sharpe 2.35, 2/4 folds negative,
   high variance) — crypto lane kept as secondary.
-- Options + equities lane: scaffolded and API-verified against alpaca-py 0.43.5
-  (multi-leg `mleg` orders, `PositionIntent` BTO/BTC/STO/STC, ≤ 4 legs, option
-  chains via `OptionHistoricalDataClient`).
+- Options + equities lane: **live-verified end-to-end** (140 tests: 60 cryptobot +
+  80 options). Fresh paper accounts start flat, so the first cycle buys one
+  100-share IWM lot (20% of equity, `EQUITY_SEED_PCT`), then sells ~Delta-0.25
+  calls against it — the wheel fires from day one. Mock lane cycles full wheel:
+  bootstrap -> covered call (e.g. IWM 261010C00216000) -> cash-secured puts on
+  SPY/QQQ; holdings + cash persisted across cycles. Alpaca MCP surface via
+  `place_stock_order` / `place_option_order` (multi-leg `mleg`, `PositionIntent`
+  BTO/BTC/STO/STC, <= 4 legs), API-verified against alpaca-py 0.43.5.
 - Live paper data/orders require Alpaca paper keys in `.env`.
