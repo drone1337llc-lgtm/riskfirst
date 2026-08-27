@@ -18,4 +18,4 @@ Mean Sharpe **2.35** with **2 of 4 folds negative** — under a fixed seed (42),
 
 The honest lesson: a single number (even a good one) is a trap — which is why the canonical verdict is now seeded and reproducible. The distribution is the truth. RiskFirst's primary lane is options+equities with vol-targeting and hard guardrails — because a gate that can fail you is the only gate worth having.
 
-Walk-forward harness: `cryptobot/eval_oos.py`, 300k timesteps / 25,766 bars, ETH/USD. Full fold record: `cryptobot/state/ETHUSD/eval_oos_full.json`.
+Walk-forward harness: `cryptobot/eval_oos.py`, 300k timesteps / 25,985 bars, ETH/USD. Full fold record: `evals/ETHUSD_eval_oos_full.json`.

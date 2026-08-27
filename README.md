@@ -47,7 +47,7 @@ cryptobot/
     train.py             PPO training
     execute.py           Alpaca paper execution + guardrails
     run.py               24/7 loop with backoff + circuit-breaker
-  state/                 live status + OOS eval results
+  evals/                 canonical OOS gate verdicts (seed-42, reproducible)
 bin/
   run_mcp.sh             uvx alpaca-mcp-server launcher (stdio/http/sse, --env-file)
 ```
@@ -59,7 +59,7 @@ cp .env.example .env     # add Alpaca PAPER ALPACA_API_KEY / ALPACA_SECRET_KEY
 pip install -r requirements.txt
 python cryptobot/eval_oos.py        # walk-forward OOS gate
 python -m cryptobot.bot.train --timesteps 300000 --device cpu  # trains to _challenger.zip
-python eval_oos.py --checkpoint checkpoints/ppo_ETHUSD_challenger.zip  # gate the challenger
+python cryptobot/eval_oos.py --checkpoint checkpoints/ppo_ETHUSD_challenger.zip  # gate the challenger
 python -m cryptobot.bot.promote --challenger checkpoints/ppo_ETHUSD_challenger.zip  # promote ONLY on OOS win
 python -m cryptobot.bot.run         # 24/7 paper loop
 ```
@@ -68,7 +68,7 @@ python -m cryptobot.bot.run         # 24/7 paper loop
 > challenger checkpoint and refuses the live champion path; `promote` replaces
 > the champion only when the challenger's walk-forward OOS mean Sharpe is
 > strictly positive **and** strictly beats the incumbent's recorded metric.
-> `state/<SYM>/promote.json` records the champion's OOS Sharpe at each promote.
+> `evals/ETHUSD_eval_oos_full.json` records the champion's OOS Sharpe at each promote.
 > No retrained policy can clobber the live lane on training loss.
 ```
 
