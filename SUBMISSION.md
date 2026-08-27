@@ -21,7 +21,7 @@ Alt (shorter):
 **What it is.** A modular, risk-first agent stack that trades Alpaca **paper** accounts. The primary lane is an **equities + options agent** (`bot/equity_agent.py`) that:
 
 - Scores a liquid equity universe (SPY, QQQ, AAPL, MSFT, NVDA) with momentum/mean-reversion signals and sizes positions **vol-targeted** (risk per position scaled by realized vol, not fixed notional).
-- Runs a defensive **options wheel overlay** — cash-secured puts + covered calls — on the same liquid underlyings, so the agent has both a long-beta engine and a defined-risk income/hedge layer.
+- Runs a defensive **options wheel overlay** — cash-secured puts + covered calls across the SPY·QQQ·IWM scan universe — so the agent has both a long-beta engine and a defined-risk income/hedge layer.
   - A fresh paper account starts flat, so on the first cycle the agent **buys one 100-share IWM lot (~$20k, 20% of equity)** (the equity leg of the wheel, `equity_bootstrap` in the decision log) and sells ~Δ 0.25 calls against it thereafter.
 - Enforces hard guardrails **before** any order reaches the broker: max 4 unique legs per multi-leg order, only valid intents (BTO/BTC/STO/STC), $500 notional cap per leg, $1 minimum, and a **-10% trailing drawdown circuit-breaker** that forces the book flat until regime confirmation.
 - Connects through the **Alpaca MCP server** (`uvx alpaca-mcp-server`, launcher in `bin/run_mcp.sh` — stdio / streamable-http / SSE) so the agent's market reads and order decisions are tool-visible and auditable, not a black box.
