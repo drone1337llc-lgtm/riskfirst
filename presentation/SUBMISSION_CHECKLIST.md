@@ -19,7 +19,7 @@
 - [x] **Slide deck** — `slides/index.html` (10 slides, RiskFirst-branded, 140-test + OOS-gate honest numbers)
 
 ## 3. Public repo (PUBLISH — do NOT include keys)
-- [ ] Push repo to **public GitHub** — blocked on Surge: gh CLI token on .67 INVALID (drone1337llc-lgtm); SSH `git@github.com` authenticates fine as drone1337llc-lgtm; repo CREATION needs an API token or a repo pre-created. (Backup bundle + runtime state stored on teamamd `backups\alpaca-kit\`.)
+- [x] Push repo to **public GitHub** — DONE 2026-08-27 08:31 MDT (gh token path, repo drone1337llc-lgtm/riskfirst PUBLIC, HEAD 6c681b4, flag .repo_pushed_fired set on verified push)
 - [x] Include: `cryptobot/` + `options/` source, `tests/`, `README.md`, `presentation/` (title/desc, pitch, journal, checklist), `posts/` (5 build-in-public posts), `SUBMISSION.md`.
 - [x] **EXCLUDE / never commit:** `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`, any `.env`, `options/decisions.db` (runtime churn + account snapshots), `config.py.bak-*`. `.gitignore` extended for all of these (commit 477fdd7).
 - [x] `config.py` reads keys from env only; **`ALPACA_REAL_TRADING=1` is the only forbidden env** — paper is hard-forced (`ALPACA_PAPER=true`) inside `McpClient`'s server env, so live keys cannot reach a real account.
