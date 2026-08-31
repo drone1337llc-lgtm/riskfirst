@@ -95,4 +95,4 @@ Alpaca paper API. Full guardrail suite: `python -m pytest` (140 tests: 60 crypto
 
 ## Paper account ID
 
-PENDING — blocked on Surge's Alpaca paper `ALPACA_API_KEY` / `ALPACA_SECRET_KEY` (escalated, Telegram msg 353). The moment keys land: verify live data + a real paper option order, then insert ID here.
+**`PA39I1R4BNYL`** — fresh Alpaca paper account created for this hackathon (start $100k, options_level 3 confirmed 2026-08-29). Live-paper trading runs unattended through the submission window; P&L and decision logs accrue in `state/paper/` (see `bin/export_pnl.py`).
