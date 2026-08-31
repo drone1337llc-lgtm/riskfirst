@@ -25,9 +25,9 @@
 - [x] `config.py` reads keys from env only; **`ALPACA_REAL_TRADING=1` is the only forbidden env** — paper is hard-forced (`ALPACA_PAPER=true`) inside `McpClient`'s server env, so live keys cannot reach a real account.
 
 ## 4. Account + live-paper proof
-- [ ] **Fresh Alpaca paper account** (created for this hackathon — do NOT reuse). Start $100k. — **BLOCKED: Surge must create + provide keys.**
-- [ ] **Dedicated paper account ID** — *placeholder:* `PASTE_ACCOUNT_ID_HERE` (fill from the paper dashboard before submission).
-- [ ] **Options Level 3 confirmed** on the paper account (required for covered calls / CSP / protective puts).
+- [x] **Fresh Alpaca paper account** (created for this hackathon — do NOT reuse). Start $100k. — **DONE 2026-08-29: keys landed, account ACTIVE.**
+- [x] **Dedicated paper account ID** — **`PA39I1R4BNYL`** (verified live 2026-08-29; options_level 3).
+- [x] **Options Level 3 confirmed** on the paper account (required for covered calls / CSP / protective puts).
 - [ ] **Live-paper traded the whole window** Aug 28 → Sep 4. Auto-armed: the moment keys land, `alpaca-key-watch` (1-min cron) fires once → verifies REST + MCP → starts `start_paper_loop.sh`; `paper-loop-watch` (1-min cron) restarts the loop if it dies or wedges during NY RTH. Track record accrues unattended in state/paper/decisions.db → export P&L via bin/export_pnl.py (report + stats land in state/paper/, auto-included in daily DR bundle; manual: cryptobot/.venv/bin/python bin/export_pnl.py --mode PAPER).
 - [ ] Verify agent ran via **Alpaca MCP** (mandatory) — capture an MCP client log/screenshot (`keys_landed.log` records the MCP boot verification).
 
