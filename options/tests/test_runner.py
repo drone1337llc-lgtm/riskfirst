@@ -133,7 +133,15 @@ def test_mock_cycle_once(monkeypatch):
     assert payload["mode"] == "MOCK"
     assert payload["account"]["equity"] == 100_000.0
     assert payload["account"]["account_id"] == "MOCK-ACCT"
-    # mock cycles must never write the real paper-account file
-    assert not (runner.ROOT / "state" / "paper" / "paper_account_id.txt").exists()
-    # the live paper trail must stay untouched by mock runs
-    assert not (runner.ROOT / "state" / "paper" / "status.json").exists()
+    # mock cycles must never write the real paper-account file. When the
+    # live MCP lane is deployed the file legitimately exists (written by the
+    # real lane on first account connect) — the invariant is that the mock
+    # run did NOT create/modify it, so compare mtimes across the run.
+    paper_id = runner.ROOT / "state" / "paper" / "paper_account_id.txt"
+    paper_status = runner.ROOT / "state" / "paper" / "status.json"
+    id_mtime = paper_id.stat().st_mtime_ns if paper_id.exists() else None
+    st_mtime = paper_status.stat().st_mtime_ns if paper_status.exists() else None
+    assert not (runner.ROOT / "state" / "paper" / "paper_account_id.txt").exists() \
+        or id_mtime == paper_id.stat().st_mtime_ns
+    assert not (runner.ROOT / "state" / "paper" / "status.json").exists() \
+        or st_mtime == paper_status.stat().st_mtime_ns

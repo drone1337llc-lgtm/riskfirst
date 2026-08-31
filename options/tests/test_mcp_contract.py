@@ -129,22 +129,68 @@ class TestChainParsing:
     def test_malformed_item_skipped(self):
         assert cl.parse_option({"symbol": "X"}, "SPY") is None
 
-    def test_get_contracts_single_chain_call(self):
-        fake = FakeRequests([{"chain": [_chain_item()]}])
+    def _wrapped(self, data):
+        """Wrap payloads in the _alpaca_mcp_security envelope the server uses."""
+        return {"_meta": {"_alpaca_wrapped": True}, "content": [
+            {"type": "text", "text": json.dumps({
+                "_alpaca_mcp_security": {"trust": "untrusted_tool_output"},
+                "data": data,
+            })},
+        ]}
+
+    def _contracts_resp(self, items):
+        return self._wrapped({"option_contracts": items, "next_page_token": None})
+
+    def _chain_resp(self, snapshots):
+        return self._wrapped({"snapshots": snapshots, "next_page_token": None})
+
+    def _spot_resp(self, bp):
+        return self._wrapped({"quotes": {"SPY": {"bp": bp, "ap": bp + 0.1}}})
+
+    def _meta_item(self, **over):
+        item = {
+            "symbol": "SPY260918C00560000",
+            "underlying_symbol": "SPY",
+            "strike_price": "560",
+            "expiration_date": "2026-09-18",
+            "type": "call",
+            "open_interest": "1250",
+        }
+        item.update(over)
+        return item
+
+    def test_get_contracts_three_calls_merge(self):
+        fake = FakeRequests([
+            self._contracts_resp([self._meta_item()]),
+            self._chain_resp({"SPY260918C00560000": {
+                "latestQuote": {"bp": 2.35, "ap": 2.41},
+            }}),
+            self._spot_resp(561.2),
+        ])
         c = make_client(fake)
         chain = c.get_contracts("SPY")
-        assert [m for m, _ in fake.calls] == ["tools/call"]
-        args0 = fake.calls[0][1]["arguments"]
-        assert fake.calls[0][1]["name"] == "get_option_chain"
-        assert args0["underlying_symbol"] == "SPY"
-        assert args0["limit"] == 250
+        names = [m for m, _ in fake.calls]
+        assert names == ["tools/call", "tools/call", "tools/call"]
+        assert fake.calls[0][1]["name"] == "get_option_contracts"
+        assert fake.calls[1][1]["name"] == "get_option_chain"
+        assert fake.calls[2][1]["name"] == "get_stock_latest_quote"
         assert len(chain) == 1
-        assert chain[0].symbol == "SPY260918C00560000"
+        o = chain[0]
+        assert o.symbol == "SPY260918C00560000"
+        assert o.strike == 560.0
+        assert o.bid == pytest.approx(2.35)
+        assert o.ask == pytest.approx(2.41)
+        assert o.spot == pytest.approx(561.2)
+        assert o.g is not None and o.g.delta > 0  # computed locally
 
     def test_get_contracts_filters_outside_dte_window(self):
-        old = _chain_item(expiration_date="2026-12-18")  # ~115 DTE, out of window
-        inwin = _chain_item()                            # ~24 DTE
-        fake = FakeRequests([{"chain": [old, inwin]}])
+        old = self._meta_item(expiration_date="2026-12-18")  # ~115 DTE
+        inwin = self._meta_item()                            # ~24 DTE
+        fake = FakeRequests([
+            self._contracts_resp([old, inwin]),
+            self._chain_resp({}),
+            self._spot_resp(561.2),
+        ])
         c = make_client(fake)
         chain = c.get_contracts("SPY")
         assert len(chain) == 1

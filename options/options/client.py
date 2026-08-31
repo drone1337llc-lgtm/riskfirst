@@ -477,6 +477,10 @@ class McpClient(BaseClient):
         # The MCP server returns formatted text; normalize the numeric fields
         # we rely on. If parsing fails, surface zeroes so the arbiter halts
         # rather than trading blind.
+        # alpaca-mcp-server wraps payloads in
+        # {"_alpaca_mcp_security": {...}, "data": {...}} — descend into data.
+        if isinstance(text, dict) and isinstance(text.get("data"), dict):
+            text = text["data"]
         acct = {}
         account_id = None
         if isinstance(text, str):
@@ -503,7 +507,8 @@ class McpClient(BaseClient):
                 "cash": _pick(text, "cash", "Cash") or 0.0,
                 "buying_power": _pick(text, "buying_power", "Buying Power") or 0.0,
             }
-            account_id = _pick(text, "account_id", "account id", "Account ID") or None
+            account_id = _pick(text, "account_id", "account_number",
+                              "account id", "Account ID", "Account Number") or None
         return {
             "equity": float(acct.get("equity") or 0.0),
             "cash": float(acct.get("cash") or 0.0),
@@ -525,7 +530,10 @@ class McpClient(BaseClient):
             except json.JSONDecodeError:
                 pass
         if isinstance(raw, dict):
-            raw = _pick(raw, "positions", "data", "content") or []
+            # alpaca-mcp-server wraps payloads in {"_alpaca_mcp_security": {...}, "data": {...}}
+            if isinstance(raw.get("data"), dict):
+                raw = raw["data"]
+            raw = _pick(raw, "positions", "result", "data", "content") or []
             if isinstance(raw, list):
                 pass
         out = []
@@ -545,27 +553,160 @@ class McpClient(BaseClient):
         return out
 
     def get_contracts(self, underlying: str) -> list[opt.Option]:
-        """Fetch the option chain via get_option_chain, filter client-side."""
+        """Fetch the option chain via MCP, merge metadata + quotes, filter.
+
+        alpaca-mcp-server exposes no greeks/IV on any tool, so we merge:
+          * get_option_contracts  -> metadata (strike, expiry, type, OI)
+          * get_option_chain      -> latest quotes (bid/ask per contract)
+          * get_stock_latest_quote-> underlying spot
+        then compute IV + greeks locally (Black-Scholes), exactly like the
+        mock backend does.
+        """
         limits = config.RiskLimits()
         today = date.today()
+        max_exp = today + timedelta(days=limits.max_dte + 7)
         out: list[opt.Option] = []
-        result = self._request("tools/call", {
-            "name": "get_option_chain",
-            "arguments": build_chain_args(underlying),
-        })
-        chain = result
-        if isinstance(chain, dict):
-            chain = _pick(chain, "chain", "contracts", "data", "options") or []
-        if isinstance(chain, list):
-            for item in chain:
-                if not isinstance(item, dict):
-                    continue
-                o = parse_option(item, underlying)
-                if o is None:
-                    continue
-                if not (limits.min_dte <= o.dte <= limits.max_dte):
-                    continue
-                out.append(o)
+
+        # 1) contract metadata (strike/expiry/type/OI) in the DTE window,
+        #    paginated (the server caps at 1000 contracts per page and the
+        #    near-dated expiries alone can exceed that).
+        meta: list = []
+        page_token: Optional[str] = None
+        for _ in range(12):  # hard cap on pages; 1000/page is plenty
+            margs = {
+                "underlying_symbols": underlying,
+                "expiration_date_gte": (today + timedelta(days=limits.min_dte)).isoformat(),
+                "expiration_date_lte": max_exp.isoformat(),
+                "limit": 1000,
+            }
+            if page_token:
+                margs["page_token"] = page_token
+            mres = self._request("tools/call", {
+                "name": "get_option_contracts",
+                "arguments": margs,
+            })
+            mres = _unwrap(mres)
+            if isinstance(mres, str) and mres.lstrip().startswith("{"):
+                try:
+                    mres = json.loads(mres)
+                except json.JSONDecodeError:
+                    pass
+            if isinstance(mres, dict):
+                if isinstance(mres.get("data"), dict):
+                    mres = mres["data"]
+                page = _pick(mres, "option_contracts", "contracts", "result", "data") or []
+                if isinstance(page, list):
+                    meta.extend(page)
+                page_token = _pick(mres, "next_page_token", "next_token")
+            if not page_token:
+                break
+        if not isinstance(meta, list):
+            return out
+
+        # 2) latest quotes per contract symbol (paginated — the chain is
+        #    capped at 1000 snapshots/page and near-dated expiries fill the
+        #    first pages)
+        quotes: dict = {}
+        try:
+            qpage: Optional[str] = None
+            for _ in range(8):
+                qargs = {"underlying_symbol": underlying, "limit": 1000}
+                if qpage:
+                    qargs["page_token"] = qpage
+                qres = self._request("tools/call", {
+                    "name": "get_option_chain",
+                    "arguments": qargs,
+                })
+                qres = _unwrap(qres)
+                if isinstance(qres, str) and qres.lstrip().startswith("{"):
+                    try:
+                        qres = json.loads(qres)
+                    except json.JSONDecodeError:
+                        pass
+                if isinstance(qres, dict):
+                    if isinstance(qres.get("data"), dict):
+                        qres = qres["data"]
+                    snaps = _pick(qres, "snapshots", "quotes", "data") or {}
+                    if isinstance(snaps, dict):
+                        for sym, snap in snaps.items():
+                            if not isinstance(snap, dict):
+                                continue
+                            q = _pick(snap, "latestQuote", "quote") or {}
+                            if isinstance(q, dict):
+                                quotes[sym] = q
+                    qpage = _pick(qres, "next_page_token", "next_token")
+                if not qpage:
+                    break
+        except MCPError as exc:
+            log.warning("get_option_chain failed (%s) — quotes empty", exc)
+
+        # 3) underlying spot
+        spot = 0.0
+        try:
+            sres = self._request("tools/call", {
+                "name": "get_stock_latest_quote",
+                "arguments": {"symbols": underlying},
+            })
+            sres = _unwrap(sres)
+            if isinstance(sres, str) and sres.lstrip().startswith("{"):
+                try:
+                    sres = json.loads(sres)
+                except json.JSONDecodeError:
+                    pass
+            if isinstance(sres, dict):
+                if isinstance(sres.get("data"), dict):
+                    sres = sres["data"]
+                q = _pick(sres, "quotes", "data") or {}
+                if isinstance(q, dict):
+                    q = q.get(underlying) or {}
+                    if isinstance(q, dict):
+                        spot = float(_pick(q, "bp", "ap", "last", "price") or 0.0)
+        except MCPError as exc:
+            log.warning("get_stock_latest_quote failed (%s) — spot 0", exc)
+
+        # 4) merge + compute IV/greeks locally
+        for item in meta:
+            if not isinstance(item, dict):
+                continue
+            symbol = _pick(item, "symbol", "contract_symbol", "contract_id")
+            strike = _pick(item, "strike_price", "strike")
+            expiry = _to_date(_pick(item, "expiration_date", "expiry", "expiration"))
+            ctype = _pick(item, "type", "option_type", "contract_type")
+            if not symbol or strike is None or not expiry or not ctype:
+                continue
+            is_call = str(ctype).lower() in ("call", "c")
+            dte = max(0, (expiry - today).days)
+            if not (limits.min_dte <= dte <= limits.max_dte):
+                continue
+            q = quotes.get(symbol) or {}
+            bid = float(_pick(q, "bp", "bid", "bid_price") or 0.0)
+            ask = float(_pick(q, "ap", "ask", "ask_price") or 0.0)
+            mid = 0.5 * (bid + ask) if (bid or ask) else 0.0
+            oi = int(_pick(item, "open_interest", "oi") or 0)
+            iv = 0.0
+            g = None
+            if mid > 0 and spot > 0 and dte > 0:
+                T = dte / 365.0
+                iv = opt.implied_vol(spot, float(strike), T, 0.05, mid, is_call) or 0.0
+                if iv > 0:
+                    g = opt.greeks(spot, float(strike), T, 0.05, iv, is_call)
+            out.append(opt.Option(
+                symbol=str(symbol),
+                underlying=underlying,
+                strike=float(strike),
+                expiry=expiry,
+                is_call=is_call,
+                bid=bid,
+                ask=ask,
+                mid=mid,
+                open_interest=oi,
+                spot=spot,
+                dte=dte,
+                iv=iv,
+                g=g,
+                iv_rank=0.5,
+                score=0.0,
+            ))
         return out
 
     def submit_order(self, proposal) -> dict:
