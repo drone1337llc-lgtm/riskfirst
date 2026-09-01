@@ -95,4 +95,4 @@ Alpaca paper API. Full guardrail suite: `python -m pytest` (140 tests: 60 crypto
 
 ## Paper account ID
 
-**`PA39I1R4BNYL`** — fresh Alpaca paper account created for this hackathon (start $100k, options_level 3 confirmed 2026-08-29). Live-paper trading runs unattended through the submission window; P&L and decision logs accrue in `state/paper/` (see `bin/export_pnl.py`).
+**`PA3LE52B5YCF`** — fresh Alpaca paper account created for this hackathon (start $100k, launched 2026-08-31). Live-paper trading runs unattended through the submission window; P&L and decision logs accrue in `state/paper/` (see `bin/export_pnl.py`).
