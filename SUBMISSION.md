@@ -7,14 +7,14 @@
 
 ## Title (short)
 
-> **RiskFirst: An Options & Equities Agent on Alpaca MCP with a Walk-Forward OOS Gate**
+> **Protonaut: A CrewAI Multi-Agent Crypto Trader on Alpaca MCP**
 
 Alt (shorter):
-> **RiskFirst — Options/Equities Trading Agent with a Walk-Forward OOS Gate**
+> **Protonaut — CrewAI Multi-Agent Crypto Trader on Alpaca MCP**
 
 ## One-line description
 
-> A risk-first paper-trading agent for options + equities built on the Alpaca MCP server — momentum/mean-reversion equity signals with vol-targeted sizing, a defensive options wheel overlay, a -10% circuit-breaker, and a walk-forward out-of-sample gate that decides what gets to trade at all.
+> A CrewAI multi-agent crypto trading system on the Alpaca MCP server — three LLM agents (bull, bear, manager) deliberate the market every 15 minutes and their verdict directly influences per-symbol allocations and risk cap, trading a 11-symbol crypto + equity universe around the clock.
 
 ## Long description (judge-facing)
 
@@ -95,4 +95,4 @@ Alpaca paper API. Full guardrail suite: `python -m pytest` (140 tests: 60 crypto
 
 ## Paper account ID
 
-**`PA3LE52B5YCF`** — fresh Alpaca paper account created for this hackathon (start $100k, launched 2026-08-31). Live-paper trading runs unattended through the submission window; P&L and decision logs accrue in `state/paper/` (see `bin/export_pnl.py`).
+**`PA39I1R4BNYL`** — Alpaca paper account running Protonaut (CrewAI). Live-paper trading runs unattended 24/7 on a 15-minute cadence; P&L and decision logs accrue in `state/paper/` (see `bin/export_pnl.py`).
